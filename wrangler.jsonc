@@ -2,6 +2,14 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "wall-clock-dashboard",
   "pages_build_output_dir": "./dist",
-  "compatibility_date": "2026-07-29"
+  "compatibility_date": "2026-07-29",
+  "vars": {
+    "WEATHER_LAT": "51.6286",
+    "WEATHER_LON": "-0.7482",
+    "WEATHER_LOCATION_NAME": "High Wycombe",
+    "DISPLAY_TIMEZONE": "Europe/London",
+    "WEATHER_UNITS": "metric",
+    "WEATHER_MOCK": "false"
+  }
 }
 

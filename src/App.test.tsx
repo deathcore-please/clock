@@ -34,7 +34,7 @@ describe("wall clock dashboard", () => {
     expect(await screen.findByText("few clouds")).toBeInTheDocument();
     expect(screen.getAllByText(/% rain/)).toHaveLength(6);
     expect(screen.queryByText("Next 24 hours")).not.toBeInTheDocument();
-    expect(screen.getByText("Take evening medication")).toBeInTheDocument();
+    expect(screen.getByText("Cancel passport issue application")).toBeInTheDocument();
     expect(screen.queryByText("London")).not.toBeInTheDocument();
     expect(screen.getByText("High / Low")).toBeInTheDocument();
     expect(screen.queryByText("Wind")).not.toBeInTheDocument();

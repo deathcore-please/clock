@@ -162,7 +162,7 @@ footer {
 }
 
 .clock-time > span {
-  font-size: clamp(14.85rem, 56.1vw, 37.95rem);
+  font-size: clamp(11.1375rem, 42.075vw, 28.4625rem);
 }
 
 html:fullscreen .clock-time,
@@ -172,7 +172,7 @@ html:-webkit-full-screen .clock-time {
 
 html:fullscreen .clock-time > span,
 html:-webkit-full-screen .clock-time > span {
-  font-size: clamp(14.52rem, 55.275vw, 37.125rem);
+  font-size: clamp(10.89rem, 41.45625vw, 27.84375rem);
 }
 
 .clock-colon {
@@ -263,7 +263,7 @@ html:-webkit-full-screen .clock-time > span {
 
 .weather-details dt {
   color: var(--display-muted);
-  font-size: clamp(0.7rem, 1.45vw, 0.95rem);
+  font-size: calc(clamp(0.7rem, 1.45vw, 0.95rem) + 2px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -271,7 +271,7 @@ html:-webkit-full-screen .clock-time > span {
 .weather-details dd {
   margin: 0;
   color: var(--display-ink);
-  font-size: clamp(0.95rem, 1.9vw, 1.25rem);
+  font-size: calc(clamp(0.95rem, 1.9vw, 1.25rem) + 2px);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -478,7 +478,7 @@ footer {
   }
 
   .clock-time > span {
-    font-size: clamp(11.88rem, 48.675vw, 25.575rem);
+    font-size: clamp(8.91rem, 36.50625vw, 19.18125rem);
   }
 
   .current-weather,

@@ -12,10 +12,10 @@ import { useFullscreen } from "./hooks/useFullscreen";
 import type { AmbientLightState, ForecastPeriod } from "./types/dashboard";
 
 const mockTasks = [
-  { label: "Take evening medication", detail: "Today" },
-  { label: "Put the bins out", detail: "Tonight" },
-  { label: "Reply to Anna", detail: "Today" },
-  { label: "Water the plants", detail: "Tomorrow" },
+  { label: "Cancel passport issue application", detail: "Today" },
+  { label: "Make Black Metal", detail: "Tonight" },
+  { label: "Donate Clothes", detail: "Today" },
+  { label: "Install Silent Hill Origins for PSP", detail: "Tomorrow" },
 ];
 
 const VISIBLE_FORECAST_PERIODS = 6;

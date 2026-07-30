@@ -1,8 +1,13 @@
 :root {
-  color: #fff;
-  background: #000;
-  font-family:
-    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --display-background: #000;
+  --display-ink: #f7f7f4;
+  --display-muted: rgba(247, 247, 244, 0.66);
+  --display-faint: rgba(247, 247, 244, 0.035);
+  --display-line: rgba(247, 247, 244, 0.28);
+  --display-line-soft: rgba(247, 247, 244, 0.14);
+  color: var(--display-ink);
+  background: var(--display-background);
+  font-family: "Times New Roman", Times, serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -19,7 +24,7 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #000;
+  background: var(--display-background);
 }
 
 button {
@@ -32,9 +37,9 @@ button {
   display: grid;
   width: 100vw;
   height: 100dvh;
-  place-items: center;
   overflow: hidden;
-  background: #000;
+  place-items: center;
+  background: var(--display-background);
 }
 
 .viewport-shell.cursor-hidden,
@@ -45,22 +50,21 @@ button {
 .dashboard {
   position: relative;
   display: grid;
+  width: min(100vw, calc(100dvh * 0.5625));
+  height: 100dvh;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows:
-    auto minmax(9rem, 1.08fr) auto auto
-    minmax(8rem, 0.82fr) 0.8rem;
-  gap: clamp(0.75rem, 1.5vh, 1.4rem);
-  width: min(100vw, calc(100dvh * 0.5625));
-  height: 100dvh;
+    auto minmax(20rem, 1.12fr) auto auto
+    minmax(17rem, 0.88fr) 0.9rem;
+  gap: clamp(1.25rem, 2.15vh, 2.6rem);
   padding:
-    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-top))
-    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-right))
-    max(clamp(0.8rem, 2vw, 1.5rem), env(safe-area-inset-bottom))
-    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-left));
+    max(clamp(2.25rem, 5.2vw, 3.5rem), env(safe-area-inset-top))
+    max(clamp(2rem, 5.2vw, 3.5rem), env(safe-area-inset-right))
+    max(clamp(1.25rem, 3.2vw, 2.1rem), env(safe-area-inset-bottom))
+    max(clamp(2rem, 5.2vw, 3.5rem), env(safe-area-inset-left));
   overflow: hidden;
-  background: #000;
-  box-shadow: 0 0 5rem rgba(255, 255, 255, 0.04);
+  background: var(--display-background);
 }
 
 .topbar,
@@ -77,10 +81,12 @@ footer {
 
 .topbar {
   display: flex;
-  min-height: 2.75rem;
+  min-height: 3.5rem;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.5rem;
+  padding-bottom: clamp(1rem, 1.6vh, 1.9rem);
+  border-bottom: 1px solid var(--display-line-soft);
 }
 
 .date,
@@ -91,52 +97,60 @@ footer {
 }
 
 .date {
-  font-size: clamp(1rem, 2.5vw, 1.6rem);
-  font-weight: 650;
-  letter-spacing: 0.03em;
+  color: var(--display-muted);
+  font-size: clamp(1rem, 2.1vw, 1.45rem);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .fullscreen-button {
   display: inline-flex;
-  min-height: 2.65rem;
+  min-height: 2.8rem;
   align-items: center;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  justify-content: center;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--display-ink);
+  border-radius: 0;
+  background: var(--display-ink);
+  color: var(--display-background);
   cursor: pointer;
+  font-size: clamp(0.66rem, 1.3vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
+    background 140ms ease,
+    color 140ms ease;
 }
 
 .fullscreen-button:hover {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--display-background);
+  color: var(--display-ink);
 }
 
 .fullscreen-button:active {
-  transform: scale(0.97);
+  background: var(--display-faint);
 }
 
 .fullscreen-button:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
+  outline: 2px solid var(--display-ink);
+  outline-offset: 4px;
 }
 
 .clock {
-  position: relative;
   display: flex;
   width: 100%;
-  min-height: 0;
   min-width: 0;
+  min-height: 0;
   align-items: center;
   justify-content: center;
-  font-variant-numeric: tabular-nums;
-  font-weight: 300;
-  letter-spacing: -0.075em;
-  line-height: 0.8;
+  color: var(--display-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 400;
+  letter-spacing: -0.07em;
+  line-height: 0.78;
 }
 
 .clock-time {
@@ -144,136 +158,148 @@ footer {
   min-width: 0;
   align-items: center;
   justify-content: center;
-  transform: translateX(clamp(-2.5rem, -4vw, -1.5rem));
+  transform: scaleX(0.92);
 }
 
 .clock-time > span {
-  font-size: clamp(7.8rem, 32.8vw, 20.3rem);
+  font-size: clamp(14.85rem, 56.1vw, 37.95rem);
+}
+
+html:fullscreen .clock-time,
+html:-webkit-full-screen .clock-time {
+  transform: translateX(0.4rem) scaleX(0.92);
+}
+
+html:fullscreen .clock-time > span,
+html:-webkit-full-screen .clock-time > span {
+  font-size: clamp(14.52rem, 55.275vw, 37.125rem);
 }
 
 .clock-colon {
-  margin: 0 0.03em;
-  transform: translateY(-0.04em);
+  margin: 0 0.025em;
+  transform: translateY(-0.045em);
 }
 
 .seconds {
   position: absolute;
   right: 0;
-  bottom: clamp(0.4rem, 1.4vh, 1.25rem);
-  font-size: clamp(1.55rem, 5vw, 3.1rem);
-  font-family: inherit;
-  font-weight: 300;
-  letter-spacing: -0.075em;
-  line-height: 0.8;
-}
-
-.current-weather,
-.weather-unavailable,
-.forecast-card,
-.forecast-placeholder span,
-.tasks-section {
-  border: 1px solid rgba(var(--ambient-rgb), 0.16);
-  background: rgba(var(--ambient-rgb), 0.035);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+  bottom: clamp(0.35rem, 1.35vh, 1.2rem);
+  color: var(--display-muted);
+  font-size: clamp(1.7rem, 5.4vw, 3.8rem);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1;
 }
 
 .current-weather,
 .weather-unavailable,
 .tasks-section {
-  border-radius: clamp(1.1rem, 2.8vw, 1.7rem);
+  border: 1px solid var(--display-line);
+  border-radius: 0;
+  background: var(--display-faint);
 }
 
 .current-weather {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  min-height: clamp(17rem, 16vh, 20rem);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  gap: clamp(0.75rem, 2vw, 1.4rem);
-  padding: clamp(0.75rem, 1.8vw, 1.2rem);
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+  padding: clamp(1.8rem, 3.6vw, 2.3rem);
 }
 
 .current-summary {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: clamp(0.55rem, 1.4vw, 0.9rem);
+  gap: clamp(1.15rem, 2.6vw, 1.8rem);
 }
 
 .current-icon {
-  width: clamp(3.5rem, 10vw, 5.5rem);
+  width: clamp(5.5rem, 14vw, 9rem);
   flex: 0 0 auto;
+  color: var(--display-ink);
   font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
-  font-size: clamp(3.4rem, 9vw, 5.4rem);
+  font-size: clamp(5.5rem, 13vw, 8.5rem);
   line-height: 0.9;
   text-align: center;
 }
 
 .temperature {
   margin: 0;
-  font-size: clamp(3.1rem, 9vw, 5.8rem);
-  font-weight: 300;
-  letter-spacing: -0.07em;
-  line-height: 0.85;
+  color: var(--display-ink);
+  font-size: clamp(5rem, 17vw, 11.5rem);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.82;
 }
 
 .condition {
-  margin-top: 0.4rem;
+  margin-top: 0.65rem;
   overflow: hidden;
-  font-size: clamp(0.78rem, 1.7vw, 1.05rem);
+  color: var(--display-muted);
+  font-size: clamp(0.9rem, 2vw, 1.25rem);
+  letter-spacing: 0.18em;
   text-overflow: ellipsis;
-  text-transform: capitalize;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .weather-details {
   display: grid;
-  gap: clamp(0.4rem, 0.9vh, 0.65rem);
+  min-height: 100%;
+  align-content: center;
+  gap: 0;
   margin: 0;
 }
 
 .weather-details div {
   display: flex;
-  align-items: baseline;
+  min-height: clamp(3rem, 4.6vh, 3.8rem);
+  align-items: center;
   justify-content: space-between;
-  gap: 0.55rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
-}
-
-.weather-details div:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
+  gap: 0.8rem;
 }
 
 .weather-details dt {
-  font-size: clamp(0.68rem, 1.5vw, 0.88rem);
+  color: var(--display-muted);
+  font-size: clamp(0.7rem, 1.45vw, 0.95rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .weather-details dd {
   margin: 0;
-  font-size: clamp(0.78rem, 1.75vw, 1.05rem);
-  font-weight: 620;
+  color: var(--display-ink);
+  font-size: clamp(0.95rem, 1.9vw, 1.25rem);
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .weather-unavailable {
   display: flex;
-  min-height: 7rem;
+  min-height: 8rem;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1.2rem;
+  gap: 1.5rem;
+  padding: clamp(1.3rem, 3vw, 2rem);
 }
 
 .weather-unavailable > span {
-  font-size: 3.25rem;
+  color: var(--display-muted);
+  font-size: 3.5rem;
 }
 
 .weather-unavailable strong {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 .weather-unavailable p {
-  margin-top: 0.3rem;
-  font-size: 0.85rem;
+  margin-top: 0.55rem;
+  color: var(--display-muted);
+  font-size: 0.88rem;
 }
 
 .forecast-section {
@@ -283,15 +309,24 @@ footer {
 .forecast-grid,
 .forecast-placeholder {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(0.4rem, 1vw, 0.75rem);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--display-line);
 }
 
 .forecast-card,
 .forecast-placeholder span {
   min-width: 0;
-  min-height: clamp(5.4rem, 7.5vh, 7.4rem);
-  border-radius: clamp(0.75rem, 1.8vw, 1.15rem);
+  min-height: clamp(7rem, 9.4vh, 10rem);
+  border: 0;
+  border-right: 1px solid var(--display-line-soft);
+  border-radius: 0;
+  background: var(--display-faint);
+}
+
+.forecast-card:last-child,
+.forecast-placeholder span:last-child {
+  border-right: 0;
 }
 
 .forecast-card {
@@ -299,71 +334,76 @@ footer {
   align-items: center;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(0.45rem, 1.1vw, 0.75rem) 0.25rem;
+  padding: clamp(0.75rem, 1.7vw, 1.2rem) 0.3rem;
   text-align: center;
 }
 
 .forecast-card time {
-  font-size: clamp(0.66rem, 1.4vw, 0.86rem);
+  color: var(--display-muted);
+  font-size: clamp(0.62rem, 1.3vw, 0.82rem);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2em;
 }
 
 .forecast-icon {
   min-height: 1em;
-  margin: 0.2rem 0 0.05rem;
+  margin: 0.4rem 0 0.2rem;
+  color: var(--display-ink);
   font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
-  font-size: clamp(1.55rem, 4vw, 2.6rem);
+  font-size: clamp(1.8rem, 4.2vw, 2.8rem);
   line-height: 1;
 }
 
 .forecast-card strong {
-  font-size: clamp(1.1rem, 2.7vw, 1.65rem);
-  font-weight: 520;
+  color: var(--display-ink);
+  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+  font-weight: 400;
 }
 
 .rain-chance {
-  margin-top: 0.1rem;
-  font-size: clamp(0.55rem, 1.15vw, 0.7rem);
+  margin-top: 0.25rem;
+  color: var(--display-muted);
+  font-size: clamp(0.52rem, 1.05vw, 0.68rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .forecast-placeholder span {
-  background:
-    linear-gradient(
-      110deg,
-      rgba(255, 255, 255, 0.025) 25%,
-      rgba(255, 255, 255, 0.08) 40%,
-      rgba(255, 255, 255, 0.025) 55%
-    );
-  background-size: 220% 100%;
-  animation: shimmer 1.8s infinite linear;
+  background: rgba(var(--ambient-rgb), 0.025);
 }
 
 .tasks-section {
   display: flex;
   min-height: 0;
   flex-direction: column;
-  padding: clamp(0.65rem, 1.5vw, 1rem);
+  padding: clamp(1.25rem, 2.8vw, 1.85rem);
   overflow: hidden;
 }
 
 .tasks-heading {
   display: flex;
+  min-height: 2.6rem;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: clamp(0.35rem, 0.7vh, 0.6rem);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  padding-bottom: clamp(0.8rem, 1.4vh, 1.35rem);
+  border-bottom: 1px solid var(--display-line);
 }
 
 .tasks-heading h2 {
   margin: 0;
-  font-size: clamp(0.9rem, 1.9vw, 1.15rem);
-  font-weight: 650;
-  letter-spacing: 0.03em;
+  color: var(--display-ink);
+  font-size: clamp(0.78rem, 1.5vw, 0.98rem);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
 }
 
 .tasks-heading span {
-  font-size: clamp(0.6rem, 1.2vw, 0.75rem);
+  color: var(--display-muted);
+  font-size: clamp(0.56rem, 1.05vw, 0.7rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
 .tasks-section ul {
@@ -378,11 +418,11 @@ footer {
 
 .tasks-section li {
   display: grid;
-  min-height: 2.15rem;
+  min-height: 3rem;
   align-items: center;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: clamp(0.45rem, 1.1vw, 0.7rem);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  gap: clamp(0.8rem, 1.7vw, 1.1rem);
+  border-bottom: 1px solid var(--display-line-soft);
 }
 
 .tasks-section li:last-child {
@@ -390,69 +430,65 @@ footer {
 }
 
 .task-marker {
-  width: clamp(0.72rem, 1.5vw, 0.92rem);
-  height: clamp(0.72rem, 1.5vw, 0.92rem);
-  border: 1.5px solid #fff;
+  width: clamp(0.7rem, 1.35vw, 0.88rem);
+  height: clamp(0.7rem, 1.35vw, 0.88rem);
+  border: 1px solid var(--display-ink);
   border-radius: 50%;
 }
 
 .task-label {
   overflow: hidden;
-  font-size: clamp(0.7rem, 1.55vw, 0.92rem);
-  font-weight: 560;
+  color: var(--display-ink);
+  font-size: clamp(0.82rem, 1.65vw, 1.08rem);
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .task-detail {
-  font-size: clamp(0.58rem, 1.2vw, 0.74rem);
+  color: var(--display-muted);
+  font-size: clamp(0.54rem, 1.05vw, 0.7rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 footer {
-  font-size: clamp(0.62rem, 1.2vw, 0.76rem);
+  color: var(--display-muted);
+  font-size: clamp(0.55rem, 1vw, 0.68rem);
+  letter-spacing: 0.16em;
   text-align: center;
-}
-
-.dashboard,
-.dashboard * {
-  color: #fff;
-}
-
-@keyframes shimmer {
-  to {
-    background-position-x: -220%;
-  }
+  text-transform: uppercase;
 }
 
 @media (orientation: portrait) {
   .dashboard {
     width: 100vw;
-    box-shadow: none;
   }
 }
 
 @media (max-height: 1400px) {
   .dashboard {
     grid-template-rows:
-      auto minmax(8rem, 0.95fr) auto auto
-      minmax(7.5rem, 0.68fr) 0.7rem;
-    gap: clamp(0.55rem, 1.1vh, 0.85rem);
-    padding-top: clamp(1rem, 2.4vh, 1.6rem);
-    padding-bottom: clamp(0.65rem, 1.2vh, 0.9rem);
+      auto minmax(16rem, 1.02fr) auto auto
+      minmax(13rem, 0.72fr) 0.75rem;
+    gap: clamp(0.8rem, 1.45vh, 1.25rem);
+    padding-top: clamp(1.4rem, 3vh, 2rem);
+    padding-bottom: clamp(0.8rem, 1.7vh, 1.2rem);
   }
 
   .clock-time > span {
-    font-size: clamp(7.375rem, 29.7vw, 14.85rem);
+    font-size: clamp(11.88rem, 48.675vw, 25.575rem);
   }
 
-  .current-weather {
-    padding: clamp(0.65rem, 1.5vw, 0.95rem);
+  .current-weather,
+  .tasks-section {
+    padding: clamp(0.9rem, 2vw, 1.25rem);
   }
 
   .forecast-card,
   .forecast-placeholder span {
-    min-height: clamp(4.9rem, 7.1vh, 6.3rem);
+    min-height: clamp(5.8rem, 8.3vh, 7.2rem);
   }
 }
 
@@ -461,8 +497,6 @@ footer {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

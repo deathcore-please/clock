@@ -28,11 +28,11 @@ afterEach(() => {
 });
 
 describe("wall clock dashboard", () => {
-  it("renders current weather, four forecast periods, and mock tasks", async () => {
+  it("renders current weather, six forecast periods, and mock tasks", async () => {
     render(<App />);
 
     expect(await screen.findByText("few clouds")).toBeInTheDocument();
-    expect(screen.getAllByText(/% rain/)).toHaveLength(4);
+    expect(screen.getAllByText(/% rain/)).toHaveLength(6);
     expect(screen.queryByText("Next 24 hours")).not.toBeInTheDocument();
     expect(screen.getByText("Take evening medication")).toBeInTheDocument();
     expect(screen.queryByText("London")).not.toBeInTheDocument();
@@ -51,8 +51,8 @@ describe("wall clock dashboard", () => {
       new Date("2026-07-29T16:00:00Z"),
     );
 
-    expect(firstWindow).toHaveLength(4);
-    expect(laterWindow).toHaveLength(4);
+    expect(firstWindow).toHaveLength(6);
+    expect(laterWindow).toHaveLength(6);
     expect(laterWindow[0].at).not.toBe(firstWindow[0].at);
   });
 

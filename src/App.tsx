@@ -18,6 +18,8 @@ const mockTasks = [
   { label: "Water the plants", detail: "Tomorrow" },
 ];
 
+const VISIBLE_FORECAST_PERIODS = 6;
+
 function ambientStyle(light: AmbientLightState) {
   const [red, green, blue] = light.rgb;
   return {
@@ -30,18 +32,18 @@ export function selectVisibleForecast(
   forecast: ForecastPeriod[],
   now: Date,
 ): ForecastPeriod[] {
-  if (forecast.length <= 4) return forecast;
+  if (forecast.length <= VISIBLE_FORECAST_PERIODS) return forecast;
 
   const firstCurrentOrFuture = forecast.findIndex(
     (period) => Date.parse(period.at) >= now.getTime(),
   );
-  const latestPossibleStart = forecast.length - 4;
+  const latestPossibleStart = forecast.length - VISIBLE_FORECAST_PERIODS;
   const start =
     firstCurrentOrFuture === -1
       ? latestPossibleStart
       : Math.min(firstCurrentOrFuture, latestPossibleStart);
 
-  return forecast.slice(start, start + 4);
+  return forecast.slice(start, start + VISIBLE_FORECAST_PERIODS);
 }
 
 function ForecastCard({
@@ -149,7 +151,7 @@ export default function App() {
         )}
 
         <section className="forecast-section" aria-label="Upcoming weather forecast">
-          {visibleForecast.length === 4 ? (
+          {visibleForecast.length === VISIBLE_FORECAST_PERIODS ? (
             <div className="forecast-grid">
               {visibleForecast.map((period) => (
                 <ForecastCard key={period.at} period={period} timezone={timezone} />
@@ -157,7 +159,7 @@ export default function App() {
             </div>
           ) : (
             <div className="forecast-placeholder" aria-hidden="true">
-              {Array.from({ length: 4 }, (_, index) => (
+              {Array.from({ length: VISIBLE_FORECAST_PERIODS }, (_, index) => (
                 <span key={index} />
               ))}
             </div>

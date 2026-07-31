@@ -1,5 +1,8 @@
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { CommuteDashboard } from "./components/CommuteDashboard";
+import { useBusState } from "./hooks/useBusState";
 import { weatherSymbol } from "./lib/condition";
+import { getCommuteMode, previewBusScenario } from "./lib/commute-mode";
 import {
   formatClockParts,
   formatDate,
@@ -19,6 +22,20 @@ const mockTasks = [
 ];
 
 const VISIBLE_FORECAST_PERIODS = 6;
+
+interface ViewOverride {
+  scheduledCommute: boolean;
+  showCommute: boolean;
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
 
 function ambientStyle(light: AmbientLightState) {
   const [red, green, blue] = light.rgb;
@@ -65,12 +82,89 @@ function ForecastCard({
   );
 }
 
+function Topbar({
+  now,
+  timezone,
+  isFullscreen,
+  canFullscreen,
+  enterFullscreen,
+}: {
+  now: Date;
+  timezone: string;
+  isFullscreen: boolean;
+  canFullscreen: boolean;
+  enterFullscreen: () => Promise<void>;
+}) {
+  return (
+    <header className="topbar">
+      <p className="date">{formatDate(now, timezone)}</p>
+      {!isFullscreen && canFullscreen ? (
+        <button
+          className="fullscreen-button"
+          type="button"
+          onClick={() => void enterFullscreen()}
+          aria-label="Enter fullscreen"
+        >
+          Full screen
+        </button>
+      ) : null}
+    </header>
+  );
+}
+
 export default function App() {
   const dashboardState = useDashboardState();
   const now = useClock();
   const { isFullscreen, cursorHidden, canFullscreen, enterFullscreen } = useFullscreen();
   const timezone = dashboardState.weather.location.timezone;
   const clock = formatClockParts(now, timezone);
+  const commuteMode = getCommuteMode(now, timezone);
+  const previewScenario = useMemo(
+    () => previewBusScenario(window.location.search, import.meta.env.DEV),
+    [],
+  );
+  const scheduledCommute = commuteMode.visible || previewScenario !== null;
+  const [viewOverride, setViewOverride] = useState<ViewOverride | null>(null);
+  const showCommute =
+    viewOverride?.scheduledCommute === scheduledCommute
+      ? viewOverride.showCommute
+      : scheduledCommute;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== "m" ||
+        event.repeat ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey ||
+        isEditableTarget(event.target)
+      ) {
+        return;
+      }
+
+      setViewOverride((current) => {
+        const currentlyShown =
+          current?.scheduledCommute === scheduledCommute
+            ? current.showCommute
+            : scheduledCommute;
+
+        return {
+          scheduledCommute,
+          showCommute: !currentlyShown,
+        };
+      });
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [scheduledCommute]);
+
+  const busState = useBusState({
+    enabled: commuteMode.prefetch || previewScenario !== null || showCommute,
+    scenario: previewScenario,
+    timezone,
+  });
   const current = dashboardState.weather.current;
   const visibleForecast = useMemo(
     () => selectVisibleForecast(dashboardState.weather.forecast, now),
@@ -86,20 +180,28 @@ export default function App() {
       className={`viewport-shell${cursorHidden ? " cursor-hidden" : ""}`}
       style={ambient}
     >
-      <section className="dashboard" aria-label="Wall clock and weather dashboard">
-        <header className="topbar">
-          <p className="date">{formatDate(now, timezone)}</p>
-          {!isFullscreen && canFullscreen ? (
-            <button
-              className="fullscreen-button"
-              type="button"
-              onClick={() => void enterFullscreen()}
-              aria-label="Enter fullscreen"
-            >
-              Full screen
-            </button>
-          ) : null}
-        </header>
+      <section
+        className={`dashboard${showCommute ? " commute-dashboard" : ""}`}
+        aria-label={showCommute ? "Route 37 commute dashboard" : "Wall clock and weather dashboard"}
+      >
+        <Topbar
+          now={now}
+          timezone={timezone}
+          isFullscreen={isFullscreen}
+          canFullscreen={canFullscreen}
+          enterFullscreen={enterFullscreen}
+        />
+
+        {showCommute ? (
+          <>
+            <CommuteDashboard
+              state={busState}
+              now={now}
+              clockLabel={`${clock.hour}:${clock.minute}:${clock.second}`}
+            />
+          </>
+        ) : (
+          <>
 
         <section className="clock" aria-label={`${clock.hour}:${clock.minute}:${clock.second}`}>
           <span className="clock-time" aria-hidden="true">
@@ -182,11 +284,13 @@ export default function App() {
           </ul>
         </section>
 
-        <footer>
-          {dashboardState.weather.status === "stale"
-            ? "Offline \u00b7 showing saved weather"
-            : " "}
-        </footer>
+            <footer>
+              {dashboardState.weather.status === "stale"
+                ? "Offline \u00b7 showing saved weather"
+                : " "}
+            </footer>
+          </>
+        )}
       </section>
     </main>
   );

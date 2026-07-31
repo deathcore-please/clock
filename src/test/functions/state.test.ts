@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchDashboardState, onRequestGet } from "./state";
+import { fetchDashboardState, onRequestGet } from "../../../functions/api/state";
 
 function providerPayload(now: Date) {
   const start = Math.floor(now.getTime() / 1000);

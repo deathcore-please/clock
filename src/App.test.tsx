@@ -1,14 +1,36 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("./components/BusMap", () => ({
+  BusMap: () => <div data-testid="bus-map" />,
+}));
 import App, { selectVisibleForecast } from "./App";
 import { DASHBOARD_CACHE_KEY } from "./lib/dashboard-cache";
+import { createMockBusState } from "./mocks/bus";
 import { createMockDashboardState } from "./mocks/dashboard";
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.replaceState({}, "", "/");
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => Response.json(createMockDashboardState(new Date()))),
+    vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/api/bus-state")) {
+        const scenario = new URL(url, "http://localhost").searchParams.get("scenario");
+        return Response.json(
+          createMockBusState(
+            scenario === "outbound" ||
+              scenario === "inbound" ||
+              scenario === "stale" ||
+              scenario === "untracked"
+              ? scenario
+              : "station",
+            new Date(),
+          ),
+        );
+      }
+      return Response.json(createMockDashboardState(new Date()));
+    }),
   );
   Object.defineProperty(document, "fullscreenElement", {
     configurable: true,
@@ -23,6 +45,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  window.history.replaceState({}, "", "/");
   Reflect.deleteProperty(document, "fullscreenElement");
   Reflect.deleteProperty(document.documentElement, "requestFullscreen");
 });
@@ -105,5 +129,83 @@ describe("wall clock dashboard", () => {
 
     expect(await screen.findByText("Weather unavailable")).toBeInTheDocument();
     expect(screen.getByLabelText(/\d{2}:\d{2}:\d{2}/)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["station", "At High Wycombe Bus Station"],
+    ["outbound", "Towards Trinity Church"],
+    ["inbound", "Approaching High Wycombe"],
+    ["stale", "Towards Trinity Church"],
+    ["untracked", "Route 37 is not currently tracking"],
+  ])("renders the %s commute preview", async (scenario, heading) => {
+    window.history.replaceState({}, "", `/?previewBus=${scenario}`);
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+    expect(screen.getByTestId("bus-map")).toBeInTheDocument();
+    expect(screen.queryByText("Tasks")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Approx\./)).not.toBeInTheDocument();
+    expect(screen.queryByText(/normal dashboard returns/i)).not.toBeInTheDocument();
+    if (scenario === "stale") {
+      expect(screen.getByText("Tracking stale")).toBeInTheDocument();
+    }
+  });
+
+  it("enters at 08:08 and returns to the normal dashboard at 08:30", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-03T07:07:59Z"));
+    render(<App />);
+    expect(screen.getByText("Tasks")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+      await Promise.resolve();
+    });
+    expect(screen.getByLabelText("Route 37 commute dashboard")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.setSystemTime(new Date("2026-08-03T07:30:00Z"));
+      vi.advanceTimersByTime(1_000);
+      await Promise.resolve();
+    });
+    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.queryByTestId("bus-map")).not.toBeInTheDocument();
+  });
+
+  it("toggles between the normal and commute dashboards with the M key", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-03T11:00:00Z"));
+    render(<App />);
+
+    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.queryByTestId("bus-map")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "m" });
+    expect(screen.getByLabelText("Route 37 commute dashboard")).toBeInTheDocument();
+    expect(screen.getByTestId("bus-map")).toBeInTheDocument();
+    expect(screen.queryByText("Tasks")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "M" });
+    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.queryByTestId("bus-map")).not.toBeInTheDocument();
+  });
+
+  it("ignores modified, repeated, and typing-field M key presses", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-03T11:00:00Z"));
+    render(<App />);
+
+    fireEvent.keyDown(window, { key: "m", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "m", altKey: true });
+    fireEvent.keyDown(window, { key: "m", metaKey: true });
+    fireEvent.keyDown(window, { key: "m", repeat: true });
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: "m" });
+    input.remove();
+
+    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.queryByTestId("bus-map")).not.toBeInTheDocument();
   });
 });

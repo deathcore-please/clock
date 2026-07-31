@@ -12,6 +12,8 @@ Function protecting the OpenWeather API key.
 - Offline fallback to the last successful weather response
 - Fullscreen entry from the page; press `Escape` to exit
 - A neutral ambient-light state ready for a future Home Assistant bridge
+- A weekday Route 37 commute view from 08:08 until 08:30
+- Live bus position, distance, update age, and available punctuality information
 
 ## Fast local UI development
 
@@ -26,6 +28,17 @@ npm run dev
 Open the local URL printed by Vite. This mode uses deterministic mock weather,
 so it does not need an API key.
 
+Preview the Route 37 view outside its normal weekday time window by adding one
+of these development-only query strings to the URL:
+
+```text
+?previewBus=station
+?previewBus=outbound
+?previewBus=inbound
+?previewBus=stale
+?previewBus=untracked
+```
+
 ## Test the Cloudflare Function locally
 
 Copy `.dev.vars.example` to `.dev.vars`, add your OpenWeather key and coordinates,
@@ -39,7 +52,10 @@ Open `http://localhost:8788`. This builds the site and runs the production
 `/api/state` Pages Function locally. Set `WEATHER_MOCK=true` in `.dev.vars` when
 you want to exercise the complete Pages stack without making a real API call.
 
-Never commit `.dev.vars` or any file containing the OpenWeather key.
+Never commit `.dev.vars` or any file containing either API key.
+
+Set `BUS_MOCK=true` to preview the complete Cloudflare bus path without a BODS
+key. For live Route 37 positions, add `BODS_API_KEY` and set `BUS_MOCK=false`.
 
 ## Cloudflare Pages deployment
 
@@ -57,12 +73,15 @@ For Git integration:
 | Name | Type | Example |
 | --- | --- | --- |
 | `OPENWEATHER_API_KEY` | Encrypted secret | Your OpenWeather key |
+| `BODS_API_KEY` | Encrypted secret | Your BODS key |
 | `WEATHER_LAT` | Variable | `51.5074` |
 | `WEATHER_LON` | Variable | `-0.1278` |
 | `WEATHER_LOCATION_NAME` | Variable | `London` |
 | `DISPLAY_TIMEZONE` | Variable | `Europe/London` |
 | `WEATHER_UNITS` | Variable | `metric` |
 | `WEATHER_MOCK` | Variable | `false` |
+| `BUS_MOCK` | Variable | `false` |
+| `BUS_MOCK_SCENARIO` | Variable | `station` |
 
 Redeploy after changing variables or secrets.
 

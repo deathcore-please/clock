@@ -461,6 +461,183 @@ footer {
   text-transform: uppercase;
 }
 
+.dashboard.commute-dashboard {
+  grid-template-rows: auto auto auto minmax(20rem, 1fr) auto;
+  gap: clamp(1rem, 1.8vh, 2rem);
+}
+
+.commute-clock {
+  color: var(--display-ink);
+  font-size: clamp(4.5rem, 16vw, 10.5rem);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.85;
+  text-align: center;
+}
+
+.bus-summary {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(1.2rem, 3vw, 2.2rem);
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+  border: 1px solid var(--display-line);
+  background: var(--display-faint);
+}
+
+.route-badge {
+  display: grid;
+  width: clamp(5.2rem, 14vw, 8rem);
+  aspect-ratio: 1;
+  place-items: center;
+  background: var(--display-ink);
+  color: var(--display-background);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.bus-summary__copy {
+  min-width: 0;
+}
+
+.bus-eyebrow,
+.bus-summary h1 {
+  margin: 0;
+}
+
+.bus-eyebrow {
+  color: var(--display-muted);
+  font-size: clamp(0.62rem, 1.3vw, 0.85rem);
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.bus-summary h1 {
+  margin: clamp(0.45rem, 0.8vh, 0.7rem) 0;
+  overflow: hidden;
+  color: var(--display-ink);
+  font-size: clamp(1.65rem, 4.4vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+}
+
+.stale-badge {
+  align-self: start;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--display-ink);
+  color: var(--display-ink);
+  font-size: clamp(0.52rem, 1vw, 0.68rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bus-map-frame {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--display-line);
+  background: #080808;
+}
+
+.bus-map {
+  width: 100%;
+  height: 100%;
+  min-height: 20rem;
+  background: #080808;
+}
+
+.bus-map .leaflet-tile-pane {
+  filter: grayscale(1) contrast(1.08) brightness(0.72);
+}
+
+.bus-map .leaflet-control-attribution {
+  padding: 0.15rem 0.3rem;
+  background: rgba(0, 0, 0, 0.78);
+  color: var(--display-ink);
+  font-size: 0.58rem;
+}
+
+.bus-map .leaflet-control-attribution a {
+  color: var(--display-ink);
+}
+
+.bus-map__stop-icon,
+.bus-map__vehicle-icon {
+  border: 0;
+  background: transparent;
+}
+
+.bus-map__stop-icon span {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: #f7f7f4;
+  color: #000;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bus-map__vehicle-icon span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 3px solid #000;
+  border-radius: 50%;
+  background: #f7f7f4;
+  color: #000;
+  font-family: Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  transform-origin: center;
+}
+
+.bus-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--display-line);
+  background: var(--display-faint);
+}
+
+.bus-metrics div {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+  padding: clamp(1rem, 2.2vw, 1.5rem);
+  border-right: 1px solid var(--display-line-soft);
+}
+
+.bus-metrics div:last-child {
+  border-right: 0;
+}
+
+.bus-metrics span {
+  color: var(--display-muted);
+  font-size: clamp(0.52rem, 1vw, 0.68rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.bus-metrics strong {
+  overflow: hidden;
+  color: var(--display-ink);
+  font-size: clamp(0.82rem, 1.7vw, 1.15rem);
+  font-weight: 400;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+}
+
 @media (orientation: portrait) {
   .dashboard {
     width: 100vw;
@@ -489,6 +666,27 @@ footer {
   .forecast-card,
   .forecast-placeholder span {
     min-height: clamp(5.8rem, 8.3vh, 7.2rem);
+  }
+
+  .dashboard.commute-dashboard {
+    grid-template-rows: auto auto auto minmax(15rem, 1fr) auto;
+    gap: clamp(0.7rem, 1.15vh, 1rem);
+  }
+
+  .commute-clock {
+    font-size: clamp(3.6rem, 13vw, 7rem);
+  }
+
+  .bus-summary {
+    padding: clamp(0.85rem, 2vw, 1.2rem);
+  }
+
+  .bus-map {
+    min-height: 15rem;
+  }
+
+  .bus-metrics div {
+    padding: clamp(0.75rem, 1.6vw, 1rem);
   }
 }
 

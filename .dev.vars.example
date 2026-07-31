@@ -1,9 +1,11 @@
 # Copy to .dev.vars for `npm run pages:dev`. Never commit .dev.vars.
 OPENWEATHER_API_KEY=replace-with-your-key
+BODS_API_KEY=replace-with-your-key
 WEATHER_LAT=51.5074
 WEATHER_LON=-0.1278
 WEATHER_LOCATION_NAME=London
 DISPLAY_TIMEZONE=Europe/London
 WEATHER_UNITS=metric
 WEATHER_MOCK=false
-
+BUS_MOCK=true
+BUS_MOCK_SCENARIO=station

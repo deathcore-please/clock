@@ -15,8 +15,6 @@ interface OpenWeatherCurrent {
     temp?: unknown;
     feels_like?: unknown;
     humidity?: unknown;
-    temp_max?: unknown;
-    temp_min?: unknown;
   };
   wind?: {
     speed?: unknown;
@@ -68,6 +66,26 @@ export function metresPerSecondToKmh(value: number): number {
   return Math.round(value * 3.6 * 10) / 10;
 }
 
+function localDateKey(date: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value;
+  const year = value("year");
+  const month = value("month");
+  const day = value("day");
+
+  if (!year || !month || !day) {
+    throw new Error("Could not determine forecast date");
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 export function normaliseOpenWeather(
   currentPayload: unknown,
   forecastPayload: unknown,
@@ -79,43 +97,52 @@ export function normaliseOpenWeather(
 
   const currentCondition = conditionFrom(current.weather);
   const currentTimestamp = requiredNumber(current.dt, "current.dt");
-  const highTemperatureC = requiredNumber(
-    current.main?.temp_max,
-    "current.main.temp_max",
-  );
-  const lowTemperatureC = requiredNumber(
-    current.main?.temp_min,
-    "current.main.temp_min",
-  );
+  const currentTemperatureC = requiredNumber(current.main?.temp, "current.main.temp");
 
   if (!Array.isArray(forecast.list)) {
     throw new Error("Invalid forecast list");
   }
 
   const nowSeconds = now.getTime() / 1000;
-  const periods: ForecastPeriod[] = forecast.list
+  const futurePeriods = forecast.list
     .map((period) => ({
       source: period,
       timestamp: requiredNumber(period.dt, "forecast.dt"),
+      temperatureC: requiredNumber(period.main?.temp, "forecast.main.temp"),
     }))
     .filter(({ timestamp }) => timestamp > nowSeconds)
-    .sort((a, b) => a.timestamp - b.timestamp)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  if (futurePeriods.length < 8) {
+    throw new Error("Forecast did not contain eight future periods");
+  }
+
+  const today = localDateKey(now, configuration.timezone);
+  const remainingTemperatures = [
+    currentTemperatureC,
+    ...futurePeriods
+      .filter(
+        ({ timestamp }) =>
+          localDateKey(new Date(timestamp * 1000), configuration.timezone) === today,
+      )
+      .map(({ temperatureC }) => temperatureC),
+  ];
+  const highTemperatureC = Math.max(...remainingTemperatures);
+  const lowTemperatureC = Math.min(...remainingTemperatures);
+
+  const periods: ForecastPeriod[] = futurePeriods
     .slice(0, 8)
-    .map(({ source, timestamp }) => {
+    .map(({ source, timestamp, temperatureC }) => {
       const condition = conditionFrom(source.weather);
       const probability = requiredNumber(source.pop ?? 0, "forecast.pop");
 
       return {
         at: new Date(timestamp * 1000).toISOString(),
-        temperatureC: requiredNumber(source.main?.temp, "forecast.main.temp"),
+        temperatureC,
         precipitationProbability: Math.round(Math.min(1, Math.max(0, probability)) * 100),
         ...condition,
       };
     });
-
-  if (periods.length !== 8) {
-    throw new Error("Forecast did not contain eight future periods");
-  }
 
   return {
     version: 2,
@@ -129,11 +156,11 @@ export function normaliseOpenWeather(
       },
       current: {
         observedAt: new Date(currentTimestamp * 1000).toISOString(),
-        temperatureC: requiredNumber(current.main?.temp, "current.main.temp"),
+        temperatureC: currentTemperatureC,
         feelsLikeC: requiredNumber(current.main?.feels_like, "current.main.feels_like"),
         humidityPercent: requiredNumber(current.main?.humidity, "current.main.humidity"),
-        highTemperatureC: Math.max(highTemperatureC, lowTemperatureC),
-        lowTemperatureC: Math.min(highTemperatureC, lowTemperatureC),
+        highTemperatureC,
+        lowTemperatureC,
         windKmh: metresPerSecondToKmh(
           requiredNumber(current.wind?.speed, "current.wind.speed"),
         ),

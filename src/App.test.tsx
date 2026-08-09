@@ -166,6 +166,29 @@ describe("wall clock dashboard", () => {
     });
   });
 
+  it("keeps black text and inverse cards for a dark live bulb colour", async () => {
+    vi.stubGlobal(
+      "fetch",
+      dashboardFetch({
+        available: true,
+        on: true,
+        mode: "colour",
+        rgb: [30, 0, 70],
+        brightness: 255,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    const { container } = render(<App />);
+    const shell = container.querySelector(".viewport-shell");
+    await waitFor(() => expect(shell).toHaveAttribute("data-ambient-theme", "colour"));
+    expect(shell).toHaveStyle({
+      "--display-background": "rgb(30, 0, 70)",
+      "--display-ink": "rgb(0, 0, 0)",
+      "--card-background": "rgb(0, 0, 0)",
+      "--card-ink": "rgb(30, 0, 70)",
+    });
+  });
+
   it.each<AmbientLightState>([
     {
       available: true,

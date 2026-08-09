@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CommuteDashboard } from "./components/CommuteDashboard";
+import { useAmbientLightState } from "./hooks/useAmbientLightState";
 import { useBusState } from "./hooks/useBusState";
 import { weatherSymbol } from "./lib/condition";
 import { getCommuteMode, previewBusScenario } from "./lib/commute-mode";
+import { createAmbientTheme } from "./lib/ambient-theme";
 import {
   formatClockParts,
   formatDate,
@@ -12,7 +14,7 @@ import {
 import { useClock } from "./hooks/useClock";
 import { useDashboardState } from "./hooks/useDashboardState";
 import { useFullscreen } from "./hooks/useFullscreen";
-import type { AmbientLightState, ForecastPeriod } from "./types/dashboard";
+import { neutralAmbientLight, type ForecastPeriod } from "./types/dashboard";
 
 const mockTasks = [
   { label: "Cancel passport issue application", detail: "Today" },
@@ -37,13 +39,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
-function ambientStyle(light: AmbientLightState) {
-  const [red, green, blue] = light.rgb;
-  return {
-    "--ambient-rgb": `${red}, ${green}, ${blue}`,
-    "--ambient-strength": light.available && light.on ? light.brightness / 255 : 0.08,
-  } as CSSProperties;
-}
+const monochromeTheme = createAmbientTheme(neutralAmbientLight);
 
 export function selectVisibleForecast(
   forecast: ForecastPeriod[],
@@ -114,6 +110,7 @@ function Topbar({
 
 export default function App() {
   const dashboardState = useDashboardState();
+  const ambientLight = useAmbientLightState();
   const now = useClock();
   const { isFullscreen, cursorHidden, canFullscreen, enterFullscreen } = useFullscreen();
   const timezone = dashboardState.weather.location.timezone;
@@ -170,15 +167,16 @@ export default function App() {
     () => selectVisibleForecast(dashboardState.weather.forecast, now),
     [dashboardState.weather.forecast, now],
   );
-  const ambient = useMemo(
-    () => ambientStyle(dashboardState.ambient.light),
-    [dashboardState.ambient.light],
+  const ambientTheme = useMemo(
+    () => (showCommute ? monochromeTheme : createAmbientTheme(ambientLight)),
+    [ambientLight, showCommute],
   );
 
   return (
     <main
       className={`viewport-shell${cursorHidden ? " cursor-hidden" : ""}`}
-      style={ambient}
+      style={ambientTheme.style}
+      data-ambient-theme={ambientTheme.mode}
     >
       <section
         className={`dashboard${showCommute ? " commute-dashboard" : ""}`}

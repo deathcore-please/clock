@@ -1,10 +1,14 @@
 export type WeatherStatus = "ready" | "stale" | "unavailable";
 
+export type AmbientThemeMode = "neutral" | "white" | "colour";
+
 export interface AmbientLightState {
   available: boolean;
   on: boolean;
+  mode: AmbientThemeMode;
   rgb: [number, number, number];
   brightness: number;
+  updatedAt: string | null;
 }
 
 export interface CurrentConditions {
@@ -50,6 +54,8 @@ export interface DashboardState {
 export const neutralAmbientLight: AmbientLightState = {
   available: false,
   on: false,
+  mode: "neutral",
   rgb: [255, 255, 255],
   brightness: 0,
+  updatedAt: null,
 };

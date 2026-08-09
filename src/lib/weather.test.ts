@@ -10,8 +10,6 @@ function makePayload(now: Date) {
         temp: 17.4,
         feels_like: 16.8,
         humidity: 71,
-        temp_max: 99,
-        temp_min: -99,
       },
       wind: { speed: 4.1 },
       weather: [{ id: 801, description: "few clouds" }],
@@ -46,48 +44,78 @@ describe("weather normalisation", () => {
     expect(state.weather.forecast[0].at).toBe("2026-07-29T15:00:00.000Z");
     expect(state.weather.forecast[7].at).toBe("2026-07-30T12:00:00.000Z");
     expect(state.weather.current?.windKmh).toBe(14.8);
-    expect(state.weather.current?.highTemperatureC).toBe(16);
+    expect(state.weather.current?.highTemperatureC).toBe(17.4);
     expect(state.weather.current?.lowTemperatureC).toBe(14);
   });
 
-  it("uses only remaining periods in the local day for high and low", () => {
-    const now = new Date("2026-07-29T17:30:00.000Z");
+  it.each([
+    {
+      nowAt: "2026-12-05T00:05:00.000Z",
+      currentTemperature: 1,
+      expectedHigh: 13,
+      expectedLow: 1,
+    },
+    {
+      nowAt: "2026-12-05T07:00:00.000Z",
+      currentTemperature: 8,
+      expectedHigh: 13,
+      expectedLow: 2,
+    },
+    {
+      nowAt: "2026-12-05T20:00:00.000Z",
+      currentTemperature: 5,
+      expectedHigh: 5,
+      expectedLow: 2,
+    },
+  ])(
+    "uses only the current reading and remaining December 5 periods at $nowAt",
+    ({ nowAt, currentTemperature, expectedHigh, expectedLow }) => {
+      const now = new Date(nowAt);
+      const payload = makePayload(now);
+      payload.current.main.temp = currentTemperature;
+      payload.forecast.list = [
+        ...[
+          { at: "2026-12-05T01:00:00.000Z", temperature: 1 },
+          { at: "2026-12-05T07:00:00.000Z", temperature: 8 },
+          { at: "2026-12-05T12:00:00.000Z", temperature: 11 },
+          { at: "2026-12-05T15:00:00.000Z", temperature: 13 },
+          { at: "2026-12-05T20:00:00.000Z", temperature: 5 },
+          { at: "2026-12-05T23:00:00.000Z", temperature: 2 },
+        ].map(({ at, temperature }) => ({
+          dt: Date.parse(at) / 1000,
+          main: { temp: temperature },
+          pop: 0,
+          weather: [{ id: 800, description: "forecast" }],
+        })),
+        ...Array.from({ length: 8 }, (_, index) => ({
+          dt: Date.parse("2026-12-06T02:00:00.000Z") / 1000 + index * 10_800,
+          main: { temp: 20 + index },
+          pop: 0,
+          weather: [{ id: 800, description: "tomorrow" }],
+        })),
+      ];
+
+      const state = normaliseOpenWeather(
+        payload.current,
+        payload.forecast,
+        { locationName: "High Wycombe", timezone: "Europe/London" },
+        now,
+      );
+
+      expect(state.weather.current?.highTemperatureC).toBe(expectedHigh);
+      expect(state.weather.current?.lowTemperatureC).toBe(expectedLow);
+    },
+  );
+
+  it("does not roll high and low into tomorrow when today has no forecast slots left", () => {
+    const now = new Date("2026-12-05T23:30:00.000Z");
     const payload = makePayload(now);
-    payload.forecast.list = [
-      {
-        dt: Date.parse("2026-07-29T15:00:00.000Z") / 1000,
-        main: { temp: 28 },
-        pop: 0,
-        weather: [{ id: 800, description: "past high" }],
-      },
-      ...Array.from({ length: 8 }, (_, index) => ({
-        dt: Date.parse("2026-07-29T18:00:00.000Z") / 1000 + index * 10_800,
-        main: { temp: [21, 16, 12, 10, 14, 24, 22, 18][index] },
-        pop: 0,
-        weather: [{ id: 800, description: "forecast" }],
-      })),
-    ];
-
-    const state = normaliseOpenWeather(
-      payload.current,
-      payload.forecast,
-      { locationName: "High Wycombe", timezone: "Europe/London" },
-      now,
-    );
-
-    expect(state.weather.current?.highTemperatureC).toBe(21);
-    expect(state.weather.current?.lowTemperatureC).toBe(16);
-  });
-
-  it("rolls high and low forward to the next forecast day after midnight cutoff", () => {
-    const now = new Date("2026-07-29T22:30:00.000Z");
-    const payload = makePayload(now);
-    const nextPeriod = Date.parse("2026-07-30T00:00:00.000Z") / 1000;
+    payload.current.main.temp = 2;
     payload.forecast.list = Array.from({ length: 8 }, (_, index) => ({
-      dt: nextPeriod + index * 10_800,
-      main: { temp: [15, 12, 14, 20, 25, 23, 19, 16][index] },
+      dt: Date.parse("2026-12-06T02:00:00.000Z") / 1000 + index * 10_800,
+      main: { temp: [1, 8, 11, 13, 5, 2, 4, 3][index] },
       pop: 0,
-      weather: [{ id: 800, description: "forecast" }],
+      weather: [{ id: 800, description: "tomorrow" }],
     }));
 
     const state = normaliseOpenWeather(
@@ -97,8 +125,8 @@ describe("weather normalisation", () => {
       now,
     );
 
-    expect(state.weather.current?.highTemperatureC).toBe(25);
-    expect(state.weather.current?.lowTemperatureC).toBe(12);
+    expect(state.weather.current?.highTemperatureC).toBe(2);
+    expect(state.weather.current?.lowTemperatureC).toBe(2);
   });
 
   it("rejects malformed provider data", () => {

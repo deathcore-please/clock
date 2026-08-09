@@ -97,6 +97,7 @@ export function normaliseOpenWeather(
 
   const currentCondition = conditionFrom(current.weather);
   const currentTimestamp = requiredNumber(current.dt, "current.dt");
+  const currentTemperatureC = requiredNumber(current.main?.temp, "current.main.temp");
 
   if (!Array.isArray(forecast.list)) {
     throw new Error("Invalid forecast list");
@@ -117,26 +118,15 @@ export function normaliseOpenWeather(
   }
 
   const today = localDateKey(now, configuration.timezone);
-  let remainingDayPeriods = futurePeriods.filter(
-    ({ timestamp }) =>
-      localDateKey(new Date(timestamp * 1000), configuration.timezone) === today,
-  );
-
-  if (remainingDayPeriods.length === 0) {
-    const nextForecastDay = localDateKey(
-      new Date(futurePeriods[0].timestamp * 1000),
-      configuration.timezone,
-    );
-    remainingDayPeriods = futurePeriods.filter(
-      ({ timestamp }) =>
-        localDateKey(new Date(timestamp * 1000), configuration.timezone) ===
-        nextForecastDay,
-    );
-  }
-
-  const remainingTemperatures = remainingDayPeriods.map(
-    ({ temperatureC }) => temperatureC,
-  );
+  const remainingTemperatures = [
+    currentTemperatureC,
+    ...futurePeriods
+      .filter(
+        ({ timestamp }) =>
+          localDateKey(new Date(timestamp * 1000), configuration.timezone) === today,
+      )
+      .map(({ temperatureC }) => temperatureC),
+  ];
   const highTemperatureC = Math.max(...remainingTemperatures);
   const lowTemperatureC = Math.min(...remainingTemperatures);
 
@@ -166,7 +156,7 @@ export function normaliseOpenWeather(
       },
       current: {
         observedAt: new Date(currentTimestamp * 1000).toISOString(),
-        temperatureC: requiredNumber(current.main?.temp, "current.main.temp"),
+        temperatureC: currentTemperatureC,
         feelsLikeC: requiredNumber(current.main?.feels_like, "current.main.feels_like"),
         humidityPercent: requiredNumber(current.main?.humidity, "current.main.humidity"),
         highTemperatureC,

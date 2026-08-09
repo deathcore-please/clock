@@ -223,7 +223,7 @@ export default function App() {
               {newDelhiClock.hour}:{newDelhiClock.minute}
             </time>
             <span className="secondary-clock-offset">
-              {newDelhiDifference} from London
+              {newDelhiDifference} GST
             </span>
           </div>
           <span className="seconds">{clock.second}</span>

@@ -164,7 +164,7 @@ footer {
   min-width: 0;
   align-items: center;
   justify-content: center;
-  transform: scaleX(0.92);
+  transform: translateY(-5rem) scaleX(0.92);
 }
 
 .clock-time > span {
@@ -173,7 +173,7 @@ footer {
 
 html:fullscreen .clock-time,
 html:-webkit-full-screen .clock-time {
-  transform: translateX(0.4rem) scaleX(0.92);
+  transform: translate(0.4rem, -5rem) scaleX(0.92);
 }
 
 html:fullscreen .clock-time > span,
@@ -219,6 +219,7 @@ html:-webkit-full-screen .clock-time > span {
   font-size: clamp(0.62rem, 1.35vw, 0.9rem);
   letter-spacing: 0.27em;
   text-transform: uppercase;
+  transform: translateX(0.5rem);
 }
 
 .secondary-clock-time {

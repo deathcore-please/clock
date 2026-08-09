@@ -66,7 +66,7 @@ describe("wall clock dashboard", () => {
     expect(screen.queryByText("Next 24 hours")).not.toBeInTheDocument();
     expect(screen.getByText("Cancel passport issue application")).toBeInTheDocument();
     expect(screen.getByText("New Delhi")).toBeInTheDocument();
-    expect(screen.getByText(/from London/)).toBeInTheDocument();
+    expect(screen.getByText(/GST$/)).toBeInTheDocument();
     expect(screen.queryByText("London")).not.toBeInTheDocument();
     expect(screen.getByText("High / Low")).toBeInTheDocument();
     expect(screen.queryByText("Wind")).not.toBeInTheDocument();

@@ -61,9 +61,12 @@ describe("wall clock dashboard", () => {
     render(<App />);
 
     expect(await screen.findByText("few clouds")).toBeInTheDocument();
-    expect(screen.getAllByText(/% rain/)).toHaveLength(6);
+    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(screen.queryByText(/% rain/)).not.toBeInTheDocument();
     expect(screen.queryByText("Next 24 hours")).not.toBeInTheDocument();
     expect(screen.getByText("Cancel passport issue application")).toBeInTheDocument();
+    expect(screen.getByText("New Delhi")).toBeInTheDocument();
+    expect(screen.getByText(/from London/)).toBeInTheDocument();
     expect(screen.queryByText("London")).not.toBeInTheDocument();
     expect(screen.getByText("High / Low")).toBeInTheDocument();
     expect(screen.queryByText("Wind")).not.toBeInTheDocument();
@@ -158,6 +161,8 @@ describe("wall clock dashboard", () => {
     expect(shell).toHaveStyle({
       "--display-background": "rgb(255, 220, 0)",
       "--display-ink": "rgb(0, 0, 0)",
+      "--card-background": "rgb(0, 0, 0)",
+      "--card-ink": "rgb(255, 220, 0)",
     });
   });
 
@@ -194,6 +199,8 @@ describe("wall clock dashboard", () => {
     expect(container.querySelector(".viewport-shell")).toHaveStyle({
       "--display-background": "rgb(0, 0, 0)",
       "--display-ink": "rgb(247, 247, 244)",
+      "--card-background": "rgba(247, 247, 244, 0.035)",
+      "--card-ink": "rgb(247, 247, 244)",
     });
   });
 

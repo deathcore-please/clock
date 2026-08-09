@@ -10,6 +10,7 @@ import {
   formatDate,
   formatForecastTime,
   formatTemperature,
+  formatTimeZoneDifference,
 } from "./lib/formatters";
 import { useClock } from "./hooks/useClock";
 import { useDashboardState } from "./hooks/useDashboardState";
@@ -24,6 +25,7 @@ const mockTasks = [
 ];
 
 const VISIBLE_FORECAST_PERIODS = 6;
+const NEW_DELHI_TIMEZONE = "Asia/Kolkata";
 
 interface ViewOverride {
   scheduledCommute: boolean;
@@ -73,7 +75,6 @@ function ForecastCard({
         {weatherSymbol(period.conditionId, period.at, timezone)}
       </span>
       <strong>{formatTemperature(period.temperatureC)}</strong>
-      <span className="rain-chance">{period.precipitationProbability}% rain</span>
     </article>
   );
 }
@@ -115,6 +116,12 @@ export default function App() {
   const { isFullscreen, cursorHidden, canFullscreen, enterFullscreen } = useFullscreen();
   const timezone = dashboardState.weather.location.timezone;
   const clock = formatClockParts(now, timezone);
+  const newDelhiClock = formatClockParts(now, NEW_DELHI_TIMEZONE);
+  const newDelhiDifference = formatTimeZoneDifference(
+    now,
+    timezone,
+    NEW_DELHI_TIMEZONE,
+  );
   const commuteMode = getCommuteMode(now, timezone);
   const previewScenario = useMemo(
     () => previewBusScenario(window.location.search, import.meta.env.DEV),
@@ -207,6 +214,18 @@ export default function App() {
             <span className="clock-colon">:</span>
             <span>{clock.minute}</span>
           </span>
+          <div
+            className="secondary-clock"
+            aria-label={`New Delhi time ${newDelhiClock.hour}:${newDelhiClock.minute}, ${newDelhiDifference} GST`}
+          >
+            <span className="secondary-clock-location">New Delhi</span>
+            <time className="secondary-clock-time" dateTime={now.toISOString()}>
+              {newDelhiClock.hour}:{newDelhiClock.minute}
+            </time>
+            <span className="secondary-clock-offset">
+              {newDelhiDifference} from London
+            </span>
+          </div>
           <span className="seconds">{clock.second}</span>
         </section>
 

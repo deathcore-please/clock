@@ -5,6 +5,12 @@
   --display-faint: rgba(247, 247, 244, 0.035);
   --display-line: rgba(247, 247, 244, 0.28);
   --display-line-soft: rgba(247, 247, 244, 0.14);
+  --card-background: rgba(247, 247, 244, 0.035);
+  --card-placeholder-background: rgba(247, 247, 244, 0.025);
+  --card-ink: #f7f7f4;
+  --card-muted: rgba(247, 247, 244, 0.66);
+  --card-line: rgba(247, 247, 244, 0.28);
+  --card-line-soft: rgba(247, 247, 244, 0.14);
   color: var(--display-ink);
   background: var(--display-background);
   font-family: "Times New Roman", Times, serif;
@@ -104,6 +110,10 @@ footer {
   text-transform: uppercase;
 }
 
+.dashboard:not(.commute-dashboard) .date {
+  font-size: clamp(1.25rem, 2.625vw, 1.8125rem);
+}
+
 .fullscreen-button {
   display: inline-flex;
   min-height: 2.8rem;
@@ -187,6 +197,61 @@ html:-webkit-full-screen .clock-time > span {
   line-height: 1;
 }
 
+.secondary-clock {
+  position: absolute;
+  bottom: clamp(0.35rem, 1.35vh, 1.2rem);
+  left: 0;
+  display: grid;
+  grid-template-areas:
+    "location location"
+    "time offset";
+  grid-template-columns: auto auto;
+  align-items: end;
+  column-gap: clamp(1rem, 2.4vw, 1.7rem);
+  row-gap: 0.55rem;
+  color: var(--display-muted);
+  letter-spacing: normal;
+  line-height: 1;
+}
+
+.secondary-clock-location {
+  grid-area: location;
+  font-size: clamp(0.62rem, 1.35vw, 0.9rem);
+  letter-spacing: 0.27em;
+  text-transform: uppercase;
+}
+
+.secondary-clock-time {
+  grid-area: time;
+  color: var(--display-ink);
+  font-size: clamp(2.9375rem, 8vw, 5.625rem);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.025em;
+  line-height: 0.82;
+}
+
+.secondary-clock-offset {
+  grid-area: offset;
+  padding-bottom: 0.08em;
+  font-size: clamp(0.58rem, 1.25vw, 0.82rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.current-weather,
+.weather-unavailable,
+.forecast-grid,
+.forecast-placeholder,
+.tasks-section {
+  --display-ink: var(--card-ink);
+  --display-muted: var(--card-muted);
+  --display-faint: var(--card-background);
+  --display-line: var(--card-line);
+  --display-line-soft: var(--card-line-soft);
+  color: var(--display-ink);
+}
+
 .current-weather,
 .weather-unavailable,
 .tasks-section {
@@ -259,7 +324,7 @@ html:-webkit-full-screen .clock-time > span {
 
 .weather-details dt {
   color: var(--display-muted);
-  font-size: calc(clamp(0.7rem, 1.45vw, 0.95rem) + 2px);
+  font-size: calc(clamp(0.875rem, 1.8125vw, 1.1875rem) + 2.5px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -267,7 +332,7 @@ html:-webkit-full-screen .clock-time > span {
 .weather-details dd {
   margin: 0;
   color: var(--display-ink);
-  font-size: calc(clamp(0.95rem, 1.9vw, 1.25rem) + 2px);
+  font-size: calc(clamp(1.1875rem, 2.375vw, 1.5625rem) + 2.5px);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -336,7 +401,7 @@ html:-webkit-full-screen .clock-time > span {
 
 .forecast-card time {
   color: var(--display-muted);
-  font-size: clamp(0.62rem, 1.3vw, 0.82rem);
+  font-size: clamp(0.775rem, 1.625vw, 1.025rem);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.2em;
 }
@@ -356,16 +421,8 @@ html:-webkit-full-screen .clock-time > span {
   font-weight: 400;
 }
 
-.rain-chance {
-  margin-top: 0.25rem;
-  color: var(--display-muted);
-  font-size: clamp(0.52rem, 1.05vw, 0.68rem);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .forecast-placeholder span {
-  background: rgba(var(--ambient-rgb), 0.025);
+  background: var(--card-placeholder-background);
 }
 
 .tasks-section {

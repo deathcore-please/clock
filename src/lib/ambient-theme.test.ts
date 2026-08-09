@@ -24,24 +24,38 @@ describe("ambient dashboard theme", () => {
     expect(theme.mode).toBe("neutral");
     expect(theme.style["--display-background"]).toBe("rgb(0, 0, 0)");
     expect(theme.style["--display-ink"]).toBe("rgb(247, 247, 244)");
+    expect(theme.style["--card-background"]).toBe("rgba(247, 247, 244, 0.035)");
+    expect(theme.style["--card-ink"]).toBe("rgb(247, 247, 244)");
   });
 
   it("uses black ink for white mode", () => {
     const theme = createAmbientTheme(bulb({ mode: "white", rgb: [255, 255, 255] }));
     expect(theme.style["--display-background"]).toBe("rgb(255, 255, 255)");
     expect(theme.style["--display-ink"]).toBe("rgb(0, 0, 0)");
+    expect(theme.style["--card-background"]).toBe("rgb(0, 0, 0)");
+    expect(theme.style["--card-ink"]).toBe("rgb(255, 255, 255)");
+    expect(theme.style["--card-muted"]).toBe("rgba(255, 255, 255, 0.66)");
   });
 
   it("uses black ink on a bright colour", () => {
     const theme = createAmbientTheme(bulb({ rgb: [255, 230, 0] }));
     expect(theme.style["--display-background"]).toBe("rgb(255, 230, 0)");
     expect(theme.style["--display-ink"]).toBe("rgb(0, 0, 0)");
+    expect(theme.style["--card-background"]).toBe("rgb(0, 0, 0)");
+    expect(theme.style["--card-placeholder-background"]).toBe("rgb(0, 0, 0)");
+    expect(theme.style["--card-ink"]).toBe("rgb(255, 230, 0)");
+    expect(theme.style["--card-line"]).toBe("rgba(255, 230, 0, 0.28)");
   });
 
   it("uses white ink on a dark colour", () => {
     const theme = createAmbientTheme(bulb({ rgb: [30, 0, 70] }));
     expect(theme.style["--display-background"]).toBe("rgb(30, 0, 70)");
     expect(theme.style["--display-ink"]).toBe("rgb(255, 255, 255)");
+    expect(theme.style["--card-background"]).toBe("rgba(255, 255, 255, 0.035)");
+    expect(theme.style["--card-placeholder-background"]).toBe(
+      "rgba(255, 255, 255, 0.025)",
+    );
+    expect(theme.style["--card-ink"]).toBe("rgb(255, 255, 255)");
   });
 
   it("ignores brightness when choosing the colour background", () => {

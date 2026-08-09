@@ -44,6 +44,9 @@ export function createAmbientTheme(light: AmbientLightState): AmbientTheme {
     mode === "white" ? WHITE : mode === "colour" ? light.rgb : NEUTRAL_BACKGROUND;
   const ink = mode === "neutral" ? NEUTRAL_INK : contrastingInk(background);
   const inkChannels = ink.join(", ");
+  const usesBlackInk = ink.every((channel) => channel === 0);
+  const cardInk = usesBlackInk ? background : ink;
+  const cardInkChannels = cardInk.join(", ");
 
   return {
     mode,
@@ -54,6 +57,16 @@ export function createAmbientTheme(light: AmbientLightState): AmbientTheme {
       "--display-faint": `rgba(${inkChannels}, 0.035)`,
       "--display-line": `rgba(${inkChannels}, 0.28)`,
       "--display-line-soft": `rgba(${inkChannels}, 0.14)`,
+      "--card-background": usesBlackInk
+        ? rgbValue(BLACK)
+        : `rgba(${inkChannels}, 0.035)`,
+      "--card-placeholder-background": usesBlackInk
+        ? rgbValue(BLACK)
+        : `rgba(${inkChannels}, 0.025)`,
+      "--card-ink": rgbValue(cardInk),
+      "--card-muted": `rgba(${cardInkChannels}, 0.66)`,
+      "--card-line": `rgba(${cardInkChannels}, 0.28)`,
+      "--card-line-soft": `rgba(${cardInkChannels}, 0.14)`,
       "--ambient-rgb": inkChannels,
     },
   };

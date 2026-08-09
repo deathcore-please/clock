@@ -3,6 +3,7 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import { createMockBusState } from "./src/mocks/bus";
 import { createMockDashboardState } from "./src/mocks/dashboard";
 import type { BusMockScenario } from "./src/types/bus";
+import { neutralAmbientLight } from "./src/types/dashboard";
 
 const busScenarios = new Set<BusMockScenario>([
   "station",
@@ -25,6 +26,13 @@ function mockDashboardApi(enabled: boolean): Plugin {
         response.setHeader("Content-Type", "application/json; charset=utf-8");
         response.setHeader("Cache-Control", "no-store");
         response.end(JSON.stringify(createMockDashboardState()));
+      });
+
+      server.middlewares.use("/api/ambient-state", (_request, response) => {
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "application/json; charset=utf-8");
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify(neutralAmbientLight));
       });
 
       server.middlewares.use("/api/bus-state", (request, response) => {

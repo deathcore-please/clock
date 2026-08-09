@@ -33,7 +33,6 @@ button {
 
 .viewport-shell {
   --ambient-rgb: 255, 255, 255;
-  --ambient-strength: 0.08;
   display: grid;
   width: 100vw;
   height: 100dvh;
@@ -120,9 +119,6 @@ footer {
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  transition:
-    background 140ms ease,
-    color 140ms ease;
 }
 
 .fullscreen-button:hover {

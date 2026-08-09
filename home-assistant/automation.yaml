@@ -1,0 +1,14 @@
+# Merge this list item into automations.yaml, or create the same automation in the UI.
+- id: push_wipro_bulb_theme_to_clock
+  alias: Push Wipro bulb theme to clock
+  description: Updates the dashboard theme and sends a five-minute freshness heartbeat.
+  triggers:
+    - trigger: state
+      entity_id: light.wipro_rgbcw_12_5w_bulb
+    - trigger: homeassistant
+      event: start
+    - trigger: time_pattern
+      minutes: "/5"
+  actions:
+    - action: rest_command.push_clock_ambient_state
+  mode: restart

@@ -8,10 +8,10 @@ Function protecting the OpenWeather API key.
 
 - 24-hour clock, seconds, and date
 - Current temperature, conditions, feels-like temperature, humidity, and high/low
-- Four upcoming 3-hour forecast periods, advancing automatically as the day passes
+- Six upcoming 3-hour forecast periods, advancing automatically as the day passes
 - Offline fallback to the last successful weather response
 - Fullscreen entry from the page; press `Escape` to exit
-- A neutral ambient-light state ready for a future Home Assistant bridge
+- A Home Assistant-controlled background theme driven by the Wipro bulb
 - A weekday Route 37 commute view from 08:08 until 08:30
 - Live bus position, distance, update age, and available punctuality information
 
@@ -45,6 +45,7 @@ Copy `.dev.vars.example` to `.dev.vars`, add your OpenWeather key and coordinate
 then run:
 
 ```powershell
+npm run d1:migrate:local
 npm run pages:dev
 ```
 
@@ -74,9 +75,10 @@ For Git integration:
 | --- | --- | --- |
 | `OPENWEATHER_API_KEY` | Encrypted secret | Your OpenWeather key |
 | `BODS_API_KEY` | Encrypted secret | Your BODS key |
-| `WEATHER_LAT` | Variable | `51.5074` |
-| `WEATHER_LON` | Variable | `-0.1278` |
-| `WEATHER_LOCATION_NAME` | Variable | `London` |
+| `AMBIENT_WEBHOOK_SECRET` | Encrypted secret | A random value of at least 32 bytes |
+| `WEATHER_LAT` | Variable | `51.6286` |
+| `WEATHER_LON` | Variable | `-0.7482` |
+| `WEATHER_LOCATION_NAME` | Variable | `High Wycombe` |
 | `DISPLAY_TIMEZONE` | Variable | `Europe/London` |
 | `WEATHER_UNITS` | Variable | `metric` |
 | `WEATHER_MOCK` | Variable | `false` |
@@ -84,6 +86,27 @@ For Git integration:
 | `BUS_MOCK_SCENARIO` | Variable | `station` |
 
 Redeploy after changing variables or secrets.
+
+### Ambient-state D1 database
+
+The Home Assistant bridge uses a single D1 row so colour changes are globally
+consistent within the dashboard's two-second polling interval. Create and migrate
+the database once before deploying this feature:
+
+```powershell
+npm run d1:create
+npm run d1:migrate:remote
+```
+
+`d1:create` writes the real `AMBIENT_DB` binding and database UUID into
+`wrangler.jsonc`. Commit that binding, add the encrypted
+`AMBIENT_WEBHOOK_SECRET`, and redeploy the Pages project. For a dashboard-created
+database, add a D1 binding named exactly `AMBIENT_DB` and run the SQL in
+`migrations/0001_ambient_state.sql` from its Console.
+
+The Home Assistant snippets and installation instructions are in
+[`home-assistant/README.md`](home-assistant/README.md). Home Assistant only makes
+outbound requests; it does not need a public URL or port forwarding.
 
 ## Raspberry Pi Chromium
 

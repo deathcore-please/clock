@@ -7,31 +7,36 @@ import App, { selectVisibleForecast } from "./App";
 import { DASHBOARD_CACHE_KEY } from "./lib/dashboard-cache";
 import { createMockBusState } from "./mocks/bus";
 import { createMockDashboardState } from "./mocks/dashboard";
+import { neutralAmbientLight, type AmbientLightState } from "./types/dashboard";
+
+function dashboardFetch(ambient: AmbientLightState = neutralAmbientLight) {
+  return vi.fn(async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes("/api/ambient-state")) {
+      return Response.json(ambient, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (url.includes("/api/bus-state")) {
+      const scenario = new URL(url, "http://localhost").searchParams.get("scenario");
+      return Response.json(
+        createMockBusState(
+          scenario === "outbound" ||
+            scenario === "inbound" ||
+            scenario === "stale" ||
+            scenario === "untracked"
+            ? scenario
+            : "station",
+          new Date(),
+        ),
+      );
+    }
+    return Response.json(createMockDashboardState(new Date()));
+  });
+}
 
 beforeEach(() => {
   localStorage.clear();
   window.history.replaceState({}, "", "/");
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string | URL | Request) => {
-      const url = String(input);
-      if (url.includes("/api/bus-state")) {
-        const scenario = new URL(url, "http://localhost").searchParams.get("scenario");
-        return Response.json(
-          createMockBusState(
-            scenario === "outbound" ||
-              scenario === "inbound" ||
-              scenario === "stale" ||
-              scenario === "untracked"
-              ? scenario
-              : "station",
-            new Date(),
-          ),
-        );
-      }
-      return Response.json(createMockDashboardState(new Date()));
-    }),
-  );
+  vi.stubGlobal("fetch", dashboardFetch());
   Object.defineProperty(document, "fullscreenElement", {
     configurable: true,
     get: () => null,
@@ -129,6 +134,67 @@ describe("wall clock dashboard", () => {
 
     expect(await screen.findByText("Weather unavailable")).toBeInTheDocument();
     expect(screen.getByLabelText(/\d{2}:\d{2}:\d{2}/)).toBeInTheDocument();
+    expect(document.querySelector(".viewport-shell")).toHaveStyle({
+      "--display-background": "rgb(0, 0, 0)",
+      "--display-ink": "rgb(247, 247, 244)",
+    });
+  });
+
+  it("applies a live bulb colour to the normal dashboard", async () => {
+    vi.stubGlobal(
+      "fetch",
+      dashboardFetch({
+        available: true,
+        on: true,
+        mode: "colour",
+        rgb: [255, 220, 0],
+        brightness: 3,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    const { container } = render(<App />);
+    const shell = container.querySelector(".viewport-shell");
+    await waitFor(() => expect(shell).toHaveAttribute("data-ambient-theme", "colour"));
+    expect(shell).toHaveStyle({
+      "--display-background": "rgb(255, 220, 0)",
+      "--display-ink": "rgb(0, 0, 0)",
+    });
+  });
+
+  it.each<AmbientLightState>([
+    {
+      available: true,
+      on: true,
+      mode: "white",
+      rgb: [255, 255, 255],
+      brightness: 255,
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      available: true,
+      on: true,
+      mode: "colour",
+      rgb: [255, 0, 0],
+      brightness: 255,
+      updatedAt: new Date().toISOString(),
+    },
+    { ...neutralAmbientLight },
+  ])("forces commute mode to the original monochrome palette", async (ambient) => {
+    window.history.replaceState({}, "", "/?previewBus=station");
+    const fetcher = dashboardFetch(ambient);
+    vi.stubGlobal("fetch", fetcher);
+    const { container } = render(<App />);
+    expect(await screen.findByLabelText("Route 37 commute dashboard")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(fetcher).toHaveBeenCalledWith(
+        "/api/ambient-state",
+        expect.objectContaining({ cache: "no-store" }),
+      ),
+    );
+    expect(container.querySelector(".viewport-shell")).toHaveStyle({
+      "--display-background": "rgb(0, 0, 0)",
+      "--display-ink": "rgb(247, 247, 244)",
+    });
   });
 
   it.each([

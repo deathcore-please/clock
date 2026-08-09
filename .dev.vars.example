@@ -1,6 +1,7 @@
 # Copy to .dev.vars for `npm run pages:dev`. Never commit .dev.vars.
 OPENWEATHER_API_KEY=replace-with-your-key
 BODS_API_KEY=replace-with-your-key
+AMBIENT_WEBHOOK_SECRET=replace-with-a-long-random-secret
 WEATHER_LAT=51.5074
 WEATHER_LON=-0.1278
 WEATHER_LOCATION_NAME=London

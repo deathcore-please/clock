@@ -1,0 +1,18 @@
+# Merge this rest_command block into Home Assistant's configuration.yaml.
+rest_command:
+  push_clock_ambient_state:
+    url: "https://clock-cln.pages.dev/api/ambient-update"
+    method: post
+    headers:
+      authorization: !secret clock_ambient_authorization
+      accept: "application/json"
+    content_type: "application/json"
+    payload: >-
+      {
+        "entity_id": "light.wipro_rgbcw_12_5w_bulb",
+        "state": {{ states('light.wipro_rgbcw_12_5w_bulb') | to_json }},
+        "color_mode": {{ state_attr('light.wipro_rgbcw_12_5w_bulb', 'color_mode') | to_json }},
+        "rgb_color": {{ state_attr('light.wipro_rgbcw_12_5w_bulb', 'rgb_color') | to_json }},
+        "brightness": {{ state_attr('light.wipro_rgbcw_12_5w_bulb', 'brightness') | to_json }},
+        "color_temp_kelvin": {{ state_attr('light.wipro_rgbcw_12_5w_bulb', 'color_temp_kelvin') | to_json }}
+      }

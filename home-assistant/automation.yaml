@@ -12,3 +12,40 @@
   actions:
     - action: rest_command.push_clock_ambient_state
   mode: restart
+
+- id: push_shopping_list_to_clock
+  alias: Push shopping list to clock
+  description: Pushes the complete shopping-list snapshot and reconciles it every 30 seconds.
+  triggers:
+    - trigger: todo.item_added
+      target:
+        entity_id: todo.shopping_list
+    - trigger: todo.item_completed
+      target:
+        entity_id: todo.shopping_list
+    - trigger: todo.item_removed
+      target:
+        entity_id: todo.shopping_list
+    - trigger: state
+      entity_id: todo.shopping_list
+    - trigger: homeassistant
+      event: start
+    - trigger: time_pattern
+      seconds: "/30"
+  actions:
+    - action: todo.get_items
+      target:
+        entity_id: todo.shopping_list
+      data:
+        status:
+          - needs_action
+          - completed
+      response_variable: task_snapshot
+    - action: rest_command.push_clock_tasks_snapshot
+      data:
+        payload: >-
+          {{ {
+            "entity_id": "todo.shopping_list",
+            "items": task_snapshot["todo.shopping_list"]["items"]
+          } | to_json }}
+  mode: restart

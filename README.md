@@ -12,6 +12,7 @@ Function protecting the OpenWeather API key.
 - Offline fallback to the last successful weather response
 - Fullscreen entry from the page; press `Escape` to exit
 - A Home Assistant-controlled background theme driven by the Wipro bulb
+- Live tasks pushed from Home Assistant's Android to-do widget
 - A weekday Route 37 commute view from 08:08 until 08:30
 - Live bus position, distance, update age, and available punctuality information
 
@@ -87,11 +88,11 @@ For Git integration:
 
 Redeploy after changing variables or secrets.
 
-### Ambient-state D1 database
+### Home Assistant state in D1
 
-The Home Assistant bridge uses a single D1 row so colour changes are globally
-consistent within the dashboard's two-second polling interval. Create and migrate
-the database once before deploying this feature:
+The Home Assistant bridges store the latest bulb state and complete task-list
+snapshot in D1 so updates remain globally consistent. Create the database once
+and apply every pending migration before deploying these features:
 
 ```powershell
 npm run d1:create
@@ -101,10 +102,10 @@ npm run d1:migrate:remote
 `d1:create` writes the real `AMBIENT_DB` binding and database UUID into
 `wrangler.jsonc`. Commit that binding, add the encrypted
 `AMBIENT_WEBHOOK_SECRET`, and redeploy the Pages project. For a dashboard-created
-database, add a D1 binding named exactly `AMBIENT_DB` and run the SQL in
-`migrations/0001_ambient_state.sql` from its Console.
+database, add a D1 binding named exactly `AMBIENT_DB` and run every numbered SQL
+file in `migrations/` from its Console in ascending order.
 
-The Home Assistant snippets and installation instructions are in
+The Home Assistant snippets, task-list seed instructions, and endpoint checks are in
 [`home-assistant/README.md`](home-assistant/README.md). Home Assistant only makes
 outbound requests; it does not need a public URL or port forwarding.
 

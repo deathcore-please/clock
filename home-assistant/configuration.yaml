@@ -16,3 +16,12 @@ rest_command:
         "brightness": {{ state_attr('light.wipro_rgbcw_12_5w_bulb', 'brightness') | to_json }},
         "color_temp_kelvin": {{ state_attr('light.wipro_rgbcw_12_5w_bulb', 'color_temp_kelvin') | to_json }}
       }
+
+  push_clock_tasks_snapshot:
+    url: "https://clock-cln.pages.dev/api/tasks-update"
+    method: post
+    headers:
+      authorization: !secret clock_ambient_authorization
+      accept: "application/json"
+    content_type: "application/json"
+    payload: "{{ payload }}"

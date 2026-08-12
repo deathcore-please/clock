@@ -15,16 +15,13 @@ import {
 import { useClock } from "./hooks/useClock";
 import { useDashboardState } from "./hooks/useDashboardState";
 import { useFullscreen } from "./hooks/useFullscreen";
+import { useTaskState } from "./hooks/useTaskState";
+import { formatTaskAge, getTaskDensity, paginateTasks } from "./lib/tasks";
 import { neutralAmbientLight, type ForecastPeriod } from "./types/dashboard";
 
-const mockTasks = [
-  { label: "Cancel passport issue application", detail: "Today" },
-  { label: "Make Black Metal", detail: "Tonight" },
-  { label: "Donate Clothes", detail: "Today" },
-  { label: "Install Silent Hill Origins for PSP", detail: "Tomorrow" },
-];
-
 const VISIBLE_FORECAST_PERIODS = 6;
+const TASKS_PER_PAGE = 12;
+const TASK_PAGE_INTERVAL_MS = 10_000;
 const NEW_DELHI_TIMEZONE = "Asia/Kolkata";
 
 interface ViewOverride {
@@ -112,6 +109,7 @@ function Topbar({
 export default function App() {
   const dashboardState = useDashboardState();
   const ambientLight = useAmbientLightState();
+  const taskState = useTaskState();
   const now = useClock();
   const { isFullscreen, cursorHidden, canFullscreen, enterFullscreen } = useFullscreen();
   const timezone = dashboardState.weather.location.timezone;
@@ -178,6 +176,53 @@ export default function App() {
     () => (showCommute ? monochromeTheme : createAmbientTheme(ambientLight)),
     [ambientLight, showCommute],
   );
+  const taskSignature = useMemo(
+    () =>
+      taskState.items
+        .map((task) => `${task.uid}\u0000${task.summary}\u0000${task.firstSeenAt}`)
+        .join("\u0001"),
+    [taskState.items],
+  );
+  const taskPageCount = Math.max(
+    1,
+    Math.ceil(taskState.items.length / TASKS_PER_PAGE),
+  );
+  const [taskPage, setTaskPage] = useState(0);
+
+  useEffect(() => {
+    setTaskPage(0);
+  }, [taskSignature]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") setTaskPage(0);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    if (taskPageCount <= 1) {
+      return () => {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
+    }
+
+    const interval = window.setInterval(() => {
+      setTaskPage((current) => (current + 1) % taskPageCount);
+    }, TASK_PAGE_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [taskPageCount, taskSignature]);
+
+  const visibleTasks = useMemo(
+    () => paginateTasks(taskState.items, taskPage, TASKS_PER_PAGE),
+    [taskPage, taskState.items],
+  );
+  const taskDensity = getTaskDensity(visibleTasks.length);
+  const taskHeading = `${taskState.items.length} OPEN${
+    taskState.status === "stale" ? " \u00b7 SAVED" : ""
+  }`;
 
   return (
     <main
@@ -285,20 +330,36 @@ export default function App() {
           )}
         </section>
 
-        <section className="tasks-section" aria-labelledby="tasks-heading">
+        <section
+          className="tasks-section"
+          aria-labelledby="tasks-heading"
+          data-density={taskDensity}
+        >
           <header className="tasks-heading">
             <h2 id="tasks-heading">Tasks</h2>
-            <span>Mock list</span>
+            <span>{taskHeading}</span>
           </header>
-          <ul>
-            {mockTasks.map((task) => (
-              <li key={task.label}>
-                <span className="task-marker" aria-hidden="true" />
-                <span className="task-label">{task.label}</span>
-                <span className="task-detail">{task.detail}</span>
-              </li>
-            ))}
-          </ul>
+          {visibleTasks.length > 0 ? (
+            <ul aria-label="Open tasks">
+              {visibleTasks.map((task) => (
+                <li key={task.uid}>
+                  <span className="task-marker" aria-hidden="true" />
+                  <span className="task-label" title={task.summary}>
+                    {task.summary}
+                  </span>
+                  <span className="task-detail">
+                    {formatTaskAge(task.firstSeenAt, now, timezone)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="tasks-empty" role="status">
+              {taskState.status === "unavailable"
+                ? "Tasks unavailable"
+                : "No pending tasks"}
+            </p>
+          )}
         </section>
 
             <footer>

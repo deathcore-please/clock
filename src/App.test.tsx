@@ -7,9 +7,14 @@ import App, { selectVisibleForecast } from "./App";
 import { DASHBOARD_CACHE_KEY } from "./lib/dashboard-cache";
 import { createMockBusState } from "./mocks/bus";
 import { createMockDashboardState } from "./mocks/dashboard";
+import { createMockTaskState } from "./mocks/tasks";
 import { neutralAmbientLight, type AmbientLightState } from "./types/dashboard";
+import type { TaskState } from "./types/tasks";
 
-function dashboardFetch(ambient: AmbientLightState = neutralAmbientLight) {
+function dashboardFetch(
+  ambient: AmbientLightState = neutralAmbientLight,
+  tasks: TaskState = createMockTaskState(new Date()),
+) {
   return vi.fn(async (input: string | URL | Request) => {
     const url = String(input);
     if (url.includes("/api/ambient-state")) {
@@ -28,6 +33,9 @@ function dashboardFetch(ambient: AmbientLightState = neutralAmbientLight) {
           new Date(),
         ),
       );
+    }
+    if (url.includes("/api/tasks-state")) {
+      return Response.json(tasks, { headers: { "Cache-Control": "no-store" } });
     }
     return Response.json(createMockDashboardState(new Date()));
   });
@@ -57,7 +65,7 @@ afterEach(() => {
 });
 
 describe("wall clock dashboard", () => {
-  it("renders current weather, six forecast periods, and mock tasks", async () => {
+  it("renders current weather, six forecast periods, and live tasks", async () => {
     render(<App />);
 
     expect(await screen.findByText("few clouds")).toBeInTheDocument();
@@ -65,6 +73,8 @@ describe("wall clock dashboard", () => {
     expect(screen.queryByText(/% rain/)).not.toBeInTheDocument();
     expect(screen.queryByText("Next 24 hours")).not.toBeInTheDocument();
     expect(screen.getByText("Cancel passport issue application")).toBeInTheDocument();
+    expect(screen.getByText("4 OPEN")).toBeInTheDocument();
+    expect(screen.getAllByText("0 DAYS")).toHaveLength(4);
     expect(screen.getByText("New Delhi")).toBeInTheDocument();
     expect(screen.getByText(/GST$/)).toBeInTheDocument();
     expect(screen.queryByText("London")).not.toBeInTheDocument();
@@ -164,6 +174,49 @@ describe("wall clock dashboard", () => {
       "--card-background": "rgb(0, 0, 0)",
       "--card-ink": "rgb(255, 220, 0)",
     });
+  });
+
+  it("shows an empty live list without stretching task rows", async () => {
+    vi.stubGlobal(
+      "fetch",
+      dashboardFetch(neutralAmbientLight, {
+        status: "ready",
+        updatedAt: new Date().toISOString(),
+        items: [],
+      }),
+    );
+    const { container } = render(<App />);
+
+    expect(await screen.findByText("No pending tasks")).toBeInTheDocument();
+    expect(screen.getByText("0 OPEN")).toBeInTheDocument();
+    expect(container.querySelector(".tasks-section")).toHaveAttribute(
+      "data-density",
+      "compact",
+    );
+  });
+
+  it("uses dense rows and renders only the first twelve tasks on a larger list", async () => {
+    const timestamp = new Date().toISOString();
+    const tasks: TaskState = {
+      status: "stale",
+      updatedAt: timestamp,
+      items: Array.from({ length: 13 }, (_, index) => ({
+        uid: `task-${index + 1}`,
+        summary: `Task ${index + 1}`,
+        firstSeenAt: timestamp,
+      })),
+    };
+    vi.stubGlobal("fetch", dashboardFetch(neutralAmbientLight, tasks));
+    const { container } = render(<App />);
+
+    expect(await screen.findByText("13 OPEN \u00b7 SAVED")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(12);
+    expect(screen.getByText("Task 1")).toBeInTheDocument();
+    expect(screen.queryByText("Task 13")).not.toBeInTheDocument();
+    expect(container.querySelector(".tasks-section")).toHaveAttribute(
+      "data-density",
+      "dense",
+    );
   });
 
   it("keeps black text and inverse cards for a dark live bulb colour", async () => {

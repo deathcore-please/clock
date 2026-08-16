@@ -2,6 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 import type {
   BusDirection,
   BusPhase,
+  RouteBusVehicle,
   BusState,
   PunctualityStatus,
 } from "../types/bus";
@@ -22,7 +23,7 @@ export const TRINITY_STOP = {
 
 const STATION_GEOFENCE_METRES = 250;
 const LOCAL_CORRIDOR_METRES = 450;
-const STALE_AFTER_SECONDS = 90;
+export const BUS_STALE_AFTER_SECONDS = 3 * 60;
 
 export interface BusActivity {
   recordedAt: string;
@@ -36,7 +37,7 @@ export interface BusActivity {
   vehicleRef: string;
   latitude: number;
   longitude: number;
-  bearing: number;
+  bearing: number | null;
   aimedTime: string | null;
   expectedTime: string | null;
 }
@@ -57,6 +58,13 @@ function text(value: unknown): string {
   const nested = record(value);
   const nestedValue = nested["#text"] ?? nested._;
   return nestedValue === undefined ? "" : text(nestedValue);
+}
+
+function finiteNumber(value: unknown): number | null {
+  const raw = text(value);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function findValues(value: unknown, key: string, results: unknown[] = []): unknown[] {
@@ -105,10 +113,10 @@ export function parseSiriVm(xml: string): BusActivity[] {
     const activity = record(value);
     const journey = record(activity.MonitoredVehicleJourney);
     const location = record(journey.VehicleLocation);
-    const latitude = Number(text(location.Latitude));
-    const longitude = Number(text(location.Longitude));
+    const latitude = finiteNumber(location.Latitude);
+    const longitude = finiteNumber(location.Longitude);
     const recordedAt = text(activity.RecordedAtTime);
-    if (!recordedAt || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    if (latitude === null || longitude === null || !recordedAt) {
       return [];
     }
 
@@ -126,7 +134,7 @@ export function parseSiriVm(xml: string): BusActivity[] {
         vehicleRef: text(journey.VehicleRef),
         latitude,
         longitude,
-        bearing: Number(text(journey.Bearing)) || 0,
+        bearing: finiteNumber(journey.Bearing),
         aimedTime: times.aimed,
         expectedTime: times.expected,
       },
@@ -201,6 +209,73 @@ function routeDirection(activity: BusActivity): BusDirection {
   return null;
 }
 
+function isExactRoute(activity: BusActivity) {
+  const line = activity.publishedLineName.trim() || activity.lineRef.trim();
+  return line.toUpperCase() === "37" && activity.operatorRef.trim().toUpperCase() === "CSLB";
+}
+
+function isValidRouteActivity(activity: BusActivity) {
+  return (
+    isExactRoute(activity) &&
+    activity.vehicleRef.trim().length > 0 &&
+    Number.isFinite(Date.parse(activity.recordedAt)) &&
+    Number.isFinite(activity.latitude) &&
+    activity.latitude >= -90 &&
+    activity.latitude <= 90 &&
+    Number.isFinite(activity.longitude) &&
+    activity.longitude >= -180 &&
+    activity.longitude <= 180
+  );
+}
+
+function latestRouteActivities(activities: BusActivity[]) {
+  const newestByVehicle = new Map<string, BusActivity>();
+
+  for (const activity of activities) {
+    if (!isValidRouteActivity(activity)) continue;
+    const vehicleKey = activity.vehicleRef.trim().toUpperCase();
+    const current = newestByVehicle.get(vehicleKey);
+    if (
+      !current ||
+      Date.parse(activity.recordedAt) > Date.parse(current.recordedAt)
+    ) {
+      newestByVehicle.set(vehicleKey, {
+        ...activity,
+        vehicleRef: activity.vehicleRef.trim(),
+      });
+    }
+  }
+
+  return [...newestByVehicle.values()];
+}
+
+function routeVehicle(activity: BusActivity, now: Date): RouteBusVehicle {
+  const recordedAt = Date.parse(activity.recordedAt);
+  const ageSeconds = Math.max(
+    0,
+    Math.floor((now.getTime() - recordedAt) / 1_000),
+  );
+
+  return {
+    id: activity.vehicleRef,
+    direction: routeDirection(activity),
+    position: {
+      latitude: activity.latitude,
+      longitude: activity.longitude,
+      bearing:
+        activity.bearing !== null && Number.isFinite(activity.bearing)
+          ? activity.bearing
+          : null,
+    },
+    tracking: {
+      recordedAt: activity.recordedAt,
+      ageSeconds,
+    },
+    status: ageSeconds >= BUS_STALE_AFTER_SECONDS ? "stale" : "ready",
+    livery: null,
+  };
+}
+
 function punctuality(activity: BusActivity): {
   status: PunctualityStatus;
   deviationMinutes: number | null;
@@ -226,7 +301,7 @@ function punctuality(activity: BusActivity): {
 
 function emptyBusState(now: Date, status: "not_tracking" | "unavailable"): BusState {
   return {
-    version: 1,
+    version: 2,
     generatedAt: now.toISOString(),
     status,
     service: {
@@ -241,6 +316,7 @@ function emptyBusState(now: Date, status: "not_tracking" | "unavailable"): BusSt
     position: null,
     target: null,
     tracking: { recordedAt: null, ageSeconds: null },
+    routeVehicles: [],
     punctuality: { status: "unknown", deviationMinutes: null },
   };
 }
@@ -253,13 +329,7 @@ export function notTrackingBusState(now = new Date()): BusState {
   return emptyBusState(now, "not_tracking");
 }
 
-function selectCandidate(activities: BusActivity[]) {
-  const exactRoute = activities.filter(
-    (activity) =>
-      (activity.publishedLineName || activity.lineRef).trim().toUpperCase() === "37" &&
-      activity.operatorRef.trim().toUpperCase() === "CSLB",
-  );
-
+function selectCandidate(exactRoute: BusActivity[]) {
   const atStation = exactRoute
     .filter(
       (activity) =>
@@ -295,20 +365,27 @@ export function normaliseBusActivities(
   activities: BusActivity[],
   now = new Date(),
 ): BusState {
-  const selected = selectCandidate(activities);
-  if (!selected) return notTrackingBusState(now);
+  const exactRoute = latestRouteActivities(activities);
+  const routeVehicles = exactRoute.map((activity) => routeVehicle(activity, now));
+  const selected = selectCandidate(exactRoute);
+  if (!selected) {
+    return {
+      ...notTrackingBusState(now),
+      routeVehicles,
+    };
+  }
 
   const { activity, phase } = selected;
   const target = phase === "approaching_station" ? HIGH_WYCOMBE_STOP : TRINITY_STOP;
-  const recordedAt = Date.parse(activity.recordedAt);
-  const ageSeconds = Number.isFinite(recordedAt)
-    ? Math.max(0, Math.floor((now.getTime() - recordedAt) / 1_000))
-    : null;
-  const status = ageSeconds !== null && ageSeconds > STALE_AFTER_SECONDS ? "stale" : "ready";
+  const selectedVehicle = routeVehicles.find(
+    (vehicle) => vehicle.id.toUpperCase() === activity.vehicleRef.toUpperCase(),
+  );
+  const ageSeconds = selectedVehicle?.tracking.ageSeconds ?? 0;
+  const status = selectedVehicle?.status ?? "ready";
   const direction = routeDirection(activity);
 
   return {
-    version: 1,
+    version: 2,
     generatedAt: now.toISOString(),
     status,
     service: {
@@ -325,7 +402,7 @@ export function normaliseBusActivities(
     position: {
       latitude: activity.latitude,
       longitude: activity.longitude,
-      bearing: activity.bearing,
+      bearing: selectedVehicle?.position.bearing ?? null,
     },
     target: {
       ...target,
@@ -335,6 +412,7 @@ export function normaliseBusActivities(
       recordedAt: activity.recordedAt,
       ageSeconds,
     },
+    routeVehicles,
     punctuality: punctuality(activity),
   };
 }

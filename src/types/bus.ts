@@ -13,7 +13,26 @@ export type PunctualityStatus = "early" | "on_time" | "late" | "unknown";
 export interface BusPosition {
   latitude: number;
   longitude: number;
-  bearing: number;
+  bearing: number | null;
+}
+
+export interface BusLivery {
+  id: number | null;
+  name: string | null;
+  colours: string[];
+  angleDegrees: number;
+}
+
+export interface RouteBusVehicle {
+  id: string;
+  direction: BusDirection;
+  position: BusPosition;
+  tracking: {
+    recordedAt: string;
+    ageSeconds: number;
+  };
+  status: "ready" | "stale";
+  livery: BusLivery | null;
 }
 
 export interface BusTarget {
@@ -25,7 +44,7 @@ export interface BusTarget {
 }
 
 export interface BusState {
-  version: 1;
+  version: 2;
   generatedAt: string;
   status: BusStatus;
   service: {
@@ -45,6 +64,7 @@ export interface BusState {
     recordedAt: string | null;
     ageSeconds: number | null;
   };
+  routeVehicles: RouteBusVehicle[];
   punctuality: {
     status: PunctualityStatus;
     deviationMinutes: number | null;

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import route37Snapshot from "../data/route-37.json";
@@ -7,7 +7,7 @@ import {
   normaliseRouteGeometry,
   type RouteGeometryFeature,
 } from "../lib/route-geometry";
-import type { BusState } from "../types/bus";
+import type { BusDirection, BusState, RouteBusVehicle } from "../types/bus";
 
 export const ROUTE_37_STYLE: L.PathOptions = {
   color: "#f7f7f4",
@@ -19,7 +19,7 @@ export const ROUTE_37_STYLE: L.PathOptions = {
 };
 
 const ROUTE_37_ATTRIBUTION =
-  'Route data: <a href="https://bustimes.org/services/37-high-wycombe-maidenhead">bustimes.org</a>';
+  'Route, vehicle &amp; livery data: <a href="https://bustimes.org/services/37-high-wycombe-maidenhead">bustimes.org</a>';
 const route37Geometry = normaliseRouteGeometry(route37Snapshot);
 
 export function addRouteGeometryLayer(
@@ -44,20 +44,120 @@ function stopIcon(label: string) {
   });
 }
 
-function vehicleIcon(bearing: number) {
+function fallbackBearing(direction: BusDirection) {
+  return direction === "inbound" ? 270 : 90;
+}
+
+function resolvedBearing(vehicle: RouteBusVehicle) {
+  return typeof vehicle.position.bearing === "number" &&
+    Number.isFinite(vehicle.position.bearing)
+    ? vehicle.position.bearing
+    : fallbackBearing(vehicle.direction);
+}
+
+function markerAgeSeconds(vehicle: RouteBusVehicle, nowMs: number) {
+  const recordedAt = Date.parse(vehicle.tracking.recordedAt);
+  if (Number.isFinite(recordedAt)) {
+    return Math.max(0, Math.floor((nowMs - recordedAt) / 1_000));
+  }
+  return Math.max(0, Math.floor(vehicle.tracking.ageSeconds));
+}
+
+export function formatBusMarkerAge(ageSeconds: number) {
+  if (!Number.isFinite(ageSeconds) || ageSeconds < 180) return null;
+  const minutes = Math.floor(ageSeconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+function safeGradientId(vehicleId: string) {
+  const safeId = vehicleId.replace(/[^a-zA-Z0-9_-]/g, "-");
+  return `bus-livery-${safeId || "unknown"}`;
+}
+
+function safeColour(colour: string) {
+  return /^#[0-9a-f]{6}$/i.test(colour) ? colour : null;
+}
+
+function liveryStops(vehicle: RouteBusVehicle) {
+  const colours = vehicle.livery?.colours
+    .map(safeColour)
+    .filter((colour): colour is string => colour !== null);
+  const validColours = colours && colours.length > 0 ? colours : ["#f7f7f4"];
+  const divisor = Math.max(1, validColours.length - 1);
+  return validColours
+    .map(
+      (colour, index) =>
+        `<stop offset="${(index / divisor) * 100}%" stop-color="${colour}" />`,
+    )
+    .join("");
+}
+
+function safeGradientAngle(vehicle: RouteBusVehicle) {
+  const angle = vehicle.livery?.angleDegrees;
+  if (typeof angle !== "number" || !Number.isFinite(angle)) return 90;
+  return ((angle % 360) + 360) % 360;
+}
+
+export function vehicleIcon(
+  vehicle: RouteBusVehicle,
+  selected: boolean,
+  nowMs: number,
+) {
+  const ageSeconds = markerAgeSeconds(vehicle, nowMs);
+  const stale = vehicle.status === "stale" || ageSeconds >= 180;
+  const ageLabel = stale
+    ? formatBusMarkerAge(Math.max(180, ageSeconds))
+    : null;
+  const markerWidth = selected ? 42 : 28;
+  const markerHeight = selected ? 54 : 36;
+  const gradientId = safeGradientId(vehicle.id);
+  const classes = [
+    "bus-map__vehicle-marker",
+    selected ? "bus-map__vehicle-marker--selected" : "",
+    stale ? "bus-map__vehicle-marker--stale" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return L.divIcon({
     className: "bus-map__vehicle-icon",
-    html: `<span style="transform: rotate(${Number.isFinite(bearing) ? bearing : 0}deg)">▲</span>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
+    html: `<div class="${classes}">
+      <svg viewBox="0 0 42 54" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="0" gradientTransform="rotate(${safeGradientAngle(vehicle)} 0.5 0.5)">
+            ${liveryStops(vehicle)}
+          </linearGradient>
+        </defs>
+        <g class="bus-map__vehicle-rotator" transform="rotate(${resolvedBearing(vehicle)} 21 27)">
+          <path class="bus-map__vehicle-arrow" d="M21 1 28 10h-4v5h-6v-5h-4Z" />
+          <rect class="bus-map__vehicle-halo" x="7" y="13" width="28" height="38" rx="5" />
+          <rect class="bus-map__vehicle-livery" x="8" y="14" width="26" height="36" rx="4" fill="url(#${gradientId})" />
+          <path class="bus-map__vehicle-window" d="M12 18h18v7H12z" />
+          <path class="bus-map__vehicle-window" d="M12 39h18v6H12z" />
+          <path class="bus-map__vehicle-wheel" d="M6 21h3v8H6zm27 0h3v8h-3zM6 36h3v8H6zm27 0h3v8h-3z" />
+        </g>
+        ${ageLabel ? `<text class="bus-map__vehicle-age" x="21" y="35" text-anchor="middle">${ageLabel}</text>` : ""}
+      </svg>
+    </div>`,
+    iconSize: [markerWidth, markerHeight],
+    iconAnchor: [markerWidth / 2, markerHeight / 2],
   });
 }
 
 export function BusMap({ state }: { state: BusState | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const vehicleMarkerRef = useRef<L.Marker | null>(null);
+  const vehicleMarkersRef = useRef(new Map<string, L.Marker>());
   const lastFitKeyRef = useRef("");
+  const [markerNow, setMarkerNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setMarkerNow(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -104,7 +204,7 @@ export function BusMap({ state }: { state: BusState | null }) {
     return () => {
       map.remove();
       mapRef.current = null;
-      vehicleMarkerRef.current = null;
+      vehicleMarkersRef.current.clear();
       lastFitKeyRef.current = "";
     };
   }, []);
@@ -113,32 +213,47 @@ export function BusMap({ state }: { state: BusState | null }) {
     const map = mapRef.current;
     if (!map) return;
 
-    const position = state?.position;
-    if (!position) {
-      if (vehicleMarkerRef.current) {
-        vehicleMarkerRef.current.remove();
-        vehicleMarkerRef.current = null;
+    const selectedId = state?.vehicle.id ?? null;
+    const visibleIds = new Set<string>();
+
+    for (const vehicle of state?.routeVehicles ?? []) {
+      visibleIds.add(vehicle.id);
+      const coordinates = L.latLng(
+        vehicle.position.latitude,
+        vehicle.position.longitude,
+      );
+      const selected = vehicle.id === selectedId;
+      const icon = vehicleIcon(vehicle, selected, markerNow);
+      const marker = vehicleMarkersRef.current.get(vehicle.id);
+
+      if (!marker) {
+        const nextMarker = L.marker(coordinates, {
+          icon,
+          keyboard: false,
+          zIndexOffset: selected ? 1000 : 500,
+        }).addTo(map);
+        vehicleMarkersRef.current.set(vehicle.id, nextMarker);
+      } else {
+        marker.setLatLng(coordinates);
+        marker.setIcon(icon);
+        marker.setZIndexOffset(selected ? 1000 : 500);
       }
-      return;
     }
 
-    const coordinates = L.latLng(position.latitude, position.longitude);
-    if (!vehicleMarkerRef.current) {
-      vehicleMarkerRef.current = L.marker(coordinates, {
-        icon: vehicleIcon(position.bearing),
-        keyboard: false,
-        title: "Live Route 37 position",
-        zIndexOffset: 1000,
-      }).addTo(map);
-    } else {
-      vehicleMarkerRef.current
-        .setLatLng(coordinates)
-        .setIcon(vehicleIcon(position.bearing));
+    for (const [vehicleId, marker] of vehicleMarkersRef.current) {
+      if (!visibleIds.has(vehicleId)) {
+        marker.remove();
+        vehicleMarkersRef.current.delete(vehicleId);
+      }
     }
 
-    const fitKey = `${state.phase}:${state.vehicle.id ?? "unknown"}`;
+    const position = state?.position;
+    if (!position) return;
+
+    const selectedCoordinates = L.latLng(position.latitude, position.longitude);
+    const fitKey = `${state.phase}:${selectedId ?? "unknown"}`;
     if (lastFitKeyRef.current !== fitKey) {
-      const points: L.LatLngExpression[] = [coordinates];
+      const points: L.LatLngExpression[] = [selectedCoordinates];
       if (state.phase === "approaching_station") {
         points.push([HIGH_WYCOMBE_STOP.latitude, HIGH_WYCOMBE_STOP.longitude]);
       } else {
@@ -153,7 +268,7 @@ export function BusMap({ state }: { state: BusState | null }) {
       }
       lastFitKeyRef.current = fitKey;
     }
-  }, [state]);
+  }, [markerNow, state]);
 
   return (
     <div

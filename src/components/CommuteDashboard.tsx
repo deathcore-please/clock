@@ -26,6 +26,13 @@ function updateLabel(state: BusState | null, now: Date) {
   return `Updated ${Math.floor(age / 60)} min ago`;
 }
 
+function selectedVehicleIsStale(state: BusState | null, now: Date) {
+  if (!state?.tracking.recordedAt) return state?.status === "stale";
+  const recordedAt = Date.parse(state.tracking.recordedAt);
+  if (!Number.isFinite(recordedAt)) return state.status === "stale";
+  return state.status === "stale" || now.getTime() - recordedAt >= 180_000;
+}
+
 export function CommuteDashboard({
   state,
   now,
@@ -53,7 +60,9 @@ export function CommuteDashboard({
           </p>
           <h1>{phaseLabel(state)}</h1>
         </div>
-        {state?.status === "stale" ? <span className="stale-badge">Tracking stale</span> : null}
+        {selectedVehicleIsStale(state, now) ? (
+          <span className="stale-badge">Tracking stale</span>
+        ) : null}
       </section>
 
       <section className="bus-map-frame" aria-label="Live bus map">

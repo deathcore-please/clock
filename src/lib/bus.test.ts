@@ -73,7 +73,13 @@ describe("BODS bus normalisation", () => {
       vehicleRef: "CSLB-80456",
       aimedTime: "2026-08-03T08:08:00+01:00",
       expectedTime: "2026-08-03T08:10:00+01:00",
+      bearing: 112,
     });
+  });
+
+  it("uses a null bearing when SIRI-VM does not report one", () => {
+    const parsed = parseSiriVm(siriXml().replace("<siri:Bearing>112</siri:Bearing>", ""));
+    expect(parsed[0]?.bearing).toBeNull();
   });
 
   it("prioritises an outbound bus at High Wycombe over other candidates", () => {
@@ -100,6 +106,11 @@ describe("BODS bus normalisation", () => {
     expect(state.phase).toBe("at_station");
     expect(state.vehicle.id).toBe("station");
     expect(state.target?.stopId).toBe(TRINITY_STOP.stopId);
+    expect(state.routeVehicles.map((vehicle) => vehicle.id)).toEqual([
+      "outbound-moving",
+      "inbound",
+      "station",
+    ]);
   });
 
   it("selects the outbound bus closest to Trinity when none is waiting", () => {
@@ -144,12 +155,26 @@ describe("BODS bus normalisation", () => {
     expect(state.target?.stopId).toBe(HIGH_WYCOMBE_STOP.stopId);
   });
 
-  it("marks old positions stale and computes early, on-time, and late states", () => {
+  it("marks positions stale at three minutes and preserves them in the route list", () => {
+    const fresh = normaliseBusActivities(
+      [activity({ recordedAt: new Date(now.getTime() - 179_000).toISOString() })],
+      now,
+    );
+    expect(fresh.status).toBe("ready");
+    expect(fresh.routeVehicles[0]?.status).toBe("ready");
+
     const stale = normaliseBusActivities(
-      [activity({ recordedAt: new Date(now.getTime() - 91_000).toISOString() })],
+      [activity({ recordedAt: new Date(now.getTime() - 180_000).toISOString() })],
       now,
     );
     expect(stale.status).toBe("stale");
+    expect(stale.routeVehicles[0]).toMatchObject({
+      status: "stale",
+      tracking: { ageSeconds: 180 },
+    });
+  });
+
+  it("computes early, on-time, and late states", () => {
 
     const late = normaliseSiriVm(siriXml(), now);
     expect(late.punctuality).toEqual({ status: "late", deviationMinutes: 2 });
@@ -177,11 +202,73 @@ describe("BODS bus normalisation", () => {
     expect(early.punctuality).toEqual({ status: "early", deviationMinutes: -2 });
   });
 
+  it("deduplicates vehicles by their newest activity and filters the exact service", () => {
+    const older = activity({
+      vehicleRef: " cslb-80456 ",
+      recordedAt: new Date(now.getTime() - 60_000).toISOString(),
+    });
+    const newest = activity({
+      vehicleRef: "CSLB-80456",
+      recordedAt: new Date(now.getTime() - 5_000).toISOString(),
+      latitude: 51.6275,
+      longitude: -0.744,
+      bearing: null,
+    });
+    const state = normaliseBusActivities(
+      [
+        older,
+        activity({ vehicleRef: "wrong-line", publishedLineName: "37M" }),
+        activity({ vehicleRef: "wrong-operator", operatorRef: "OTHER" }),
+        newest,
+      ],
+      now,
+    );
+
+    expect(state.routeVehicles).toHaveLength(1);
+    expect(state.routeVehicles[0]).toMatchObject({
+      id: "CSLB-80456",
+      position: {
+        latitude: newest.latitude,
+        longitude: newest.longitude,
+        bearing: null,
+      },
+      tracking: { recordedAt: newest.recordedAt, ageSeconds: 5 },
+      status: "ready",
+      livery: null,
+    });
+    expect(state.position).toEqual(state.routeVehicles[0]?.position);
+  });
+
+  it("returns all route vehicles even when none matches the selection corridor", () => {
+    const state = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "unknown-direction",
+          directionRef: "",
+          originRef: "unknown-origin",
+          destinationRef: "unknown-destination",
+          destinationName: "Somewhere Else",
+          latitude: 51.7,
+          longitude: -0.6,
+        }),
+      ],
+      now,
+    );
+
+    expect(state.status).toBe("not_tracking");
+    expect(state.position).toBeNull();
+    expect(state.routeVehicles).toHaveLength(1);
+    expect(state.routeVehicles[0]?.direction).toBeNull();
+  });
+
   it("returns not tracking for malformed or non-matching activities", () => {
     expect(normaliseSiriVm("<Siri />", now).status).toBe("not_tracking");
-    expect(
-      normaliseBusActivities([activity({ publishedLineName: "37M" })], now).status,
-    ).toBe("not_tracking");
+    const nonMatching = normaliseBusActivities(
+      [activity({ publishedLineName: "37M" })],
+      now,
+    );
+    expect(nonMatching.status).toBe("not_tracking");
+    expect(nonMatching.routeVehicles).toEqual([]);
   });
 
   it("calculates a plausible Haversine distance between the two stops", () => {

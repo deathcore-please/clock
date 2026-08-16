@@ -1,6 +1,7 @@
-import type { BusState } from "../types/bus";
+import type { BusState, RouteBusVehicle } from "../types/bus";
+import { BUS_STALE_AFTER_SECONDS } from "./bus";
 
-export const BUS_CACHE_KEY = "wall-clock-bus-state-v1";
+export const BUS_CACHE_KEY = "wall-clock-bus-state-v2";
 const MAX_CACHE_AGE_MS = 5 * 60 * 1_000;
 
 interface CachedBusState {
@@ -18,12 +19,33 @@ function localDate(date: Date, timezone: string) {
   }).format(date);
 }
 
+function ageSeconds(recordedAt: string, now: Date, fallback: number) {
+  const recorded = Date.parse(recordedAt);
+  return Number.isFinite(recorded)
+    ? Math.max(0, Math.floor((now.getTime() - recorded) / 1_000))
+    : fallback;
+}
+
+function refreshVehicleAge(vehicle: RouteBusVehicle, now: Date): RouteBusVehicle {
+  const age = ageSeconds(
+    vehicle.tracking.recordedAt,
+    now,
+    vehicle.tracking.ageSeconds,
+  );
+  return {
+    ...vehicle,
+    tracking: { ...vehicle.tracking, ageSeconds: age },
+    status: age >= BUS_STALE_AFTER_SECONDS ? "stale" : "ready",
+  };
+}
+
 export function saveBusState(
   state: BusState,
   now = new Date(),
   timezone = "Europe/London",
 ) {
-  if (!state.position || (state.status !== "ready" && state.status !== "stale")) return;
+  if (!state.position && state.routeVehicles.length === 0) return;
+  if (state.status === "unavailable") return;
   const cached: CachedBusState = {
     savedAt: now.toISOString(),
     localDate: localDate(now, timezone),
@@ -45,11 +67,29 @@ export function loadBusState(
       cached.localDate !== localDate(now, timezone) ||
       !Number.isFinite(savedAt) ||
       now.getTime() - savedAt > MAX_CACHE_AGE_MS ||
-      !cached.state?.position
+      (!cached.state?.position && cached.state?.routeVehicles?.length === 0) ||
+      !Array.isArray(cached.state?.routeVehicles)
     ) {
       return null;
     }
-    return { ...cached.state, status: "stale" };
+    const selectedAge = cached.state.tracking.recordedAt
+      ? ageSeconds(
+          cached.state.tracking.recordedAt,
+          now,
+          cached.state.tracking.ageSeconds ?? 0,
+        )
+      : null;
+    return {
+      ...cached.state,
+      status: cached.state.position ? "stale" : cached.state.status,
+      tracking: {
+        ...cached.state.tracking,
+        ageSeconds: selectedAge,
+      },
+      routeVehicles: cached.state.routeVehicles.map((vehicle) =>
+        refreshVehicleAge(vehicle, now),
+      ),
+    };
   } catch {
     return null;
   }

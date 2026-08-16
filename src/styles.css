@@ -694,19 +694,65 @@ footer {
   line-height: 1;
 }
 
-.bus-map__vehicle-icon span {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 3px solid #000;
-  border-radius: 50%;
-  background: #f7f7f4;
-  color: #000;
+.bus-map__vehicle-marker {
+  width: 100%;
+  height: 100%;
+}
+
+.bus-map__vehicle-marker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bus-map__vehicle-arrow {
+  fill: #f7f7f4;
+  stroke: #000;
+  stroke-linejoin: round;
+  stroke-width: 2px;
+}
+
+.bus-map__vehicle-halo {
+  fill: #000;
+  stroke: #000;
+  stroke-width: 3px;
+}
+
+.bus-map__vehicle-marker--selected .bus-map__vehicle-halo {
+  stroke: #f7f7f4;
+  stroke-width: 6px;
+}
+
+.bus-map__vehicle-livery {
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+.bus-map__vehicle-marker--stale .bus-map__vehicle-livery {
+  filter: grayscale(1);
+}
+
+.bus-map__vehicle-window {
+  fill: rgba(0, 0, 0, 0.72);
+  stroke: rgba(255, 255, 255, 0.62);
+  stroke-width: 0.8px;
+}
+
+.bus-map__vehicle-wheel {
+  fill: #000;
+}
+
+.bus-map__vehicle-age {
+  fill: #f7f7f4;
+  stroke: #000;
+  stroke-linejoin: round;
+  stroke-width: 2.5px;
+  paint-order: stroke fill;
   font-family: Arial, sans-serif;
-  font-size: 17px;
-  line-height: 1;
-  transform-origin: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 .bus-metrics {

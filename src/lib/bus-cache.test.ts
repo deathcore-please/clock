@@ -7,9 +7,44 @@ describe("bus browser cache", () => {
 
   it("restores a same-day recent position as stale", () => {
     const savedAt = new Date("2026-08-03T07:10:00Z");
-    saveBusState(createMockBusState("outbound", savedAt), savedAt, "Europe/London");
+    const state = createMockBusState("outbound", savedAt);
+    saveBusState(state, savedAt, "Europe/London");
+    const restored = loadBusState(
+      new Date("2026-08-03T07:13:00Z"),
+      "Europe/London",
+    );
+
+    expect(restored?.status).toBe("stale");
+    expect(restored?.routeVehicles).toHaveLength(state.routeVehicles.length);
+    expect(restored?.routeVehicles[0].tracking.ageSeconds).toBeGreaterThan(180);
+    expect(restored?.routeVehicles[0].status).toBe("stale");
+  });
+
+  it("recomputes the three-minute stale boundary for every cached vehicle", () => {
+    const now = new Date("2026-08-03T07:10:00Z");
+    const state = createMockBusState("outbound", now);
+    const vehicle = state.routeVehicles[0];
+    const recordedAt = new Date(now.getTime() - 179_000).toISOString();
+    const snapshot = {
+      ...state,
+      routeVehicles: [
+        {
+          ...vehicle,
+          tracking: { recordedAt, ageSeconds: 179 },
+          status: "ready" as const,
+        },
+      ],
+    };
+    saveBusState(snapshot, now, "Europe/London");
+
     expect(
-      loadBusState(new Date("2026-08-03T07:13:00Z"), "Europe/London")?.status,
+      loadBusState(now, "Europe/London")?.routeVehicles[0].status,
+    ).toBe("ready");
+    expect(
+      loadBusState(
+        new Date(now.getTime() + 1_000),
+        "Europe/London",
+      )?.routeVehicles[0].status,
     ).toBe("stale");
   });
 
@@ -23,5 +58,31 @@ describe("bus browser cache", () => {
   it("does not cache untracked responses", () => {
     saveBusState(createMockBusState("untracked"));
     expect(localStorage.getItem(BUS_CACHE_KEY)).toBeNull();
+  });
+
+  it("preserves a complete multi-vehicle snapshot without a selected bus", () => {
+    const savedAt = new Date("2026-08-03T07:10:00Z");
+    const tracked = createMockBusState("outbound", savedAt);
+    const snapshot = {
+      ...tracked,
+      status: "not_tracking" as const,
+      phase: "not_tracking" as const,
+      vehicle: { id: null },
+      position: null,
+      target: null,
+      tracking: { recordedAt: null, ageSeconds: null },
+    };
+
+    saveBusState(snapshot, savedAt, "Europe/London");
+    const restored = loadBusState(
+      new Date("2026-08-03T07:13:00Z"),
+      "Europe/London",
+    );
+
+    expect(restored?.status).toBe("not_tracking");
+    expect(restored?.routeVehicles).toHaveLength(snapshot.routeVehicles.length);
+    expect(restored?.routeVehicles.every((vehicle) => vehicle.status === "stale")).toBe(
+      true,
+    );
   });
 });

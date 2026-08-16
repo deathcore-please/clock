@@ -325,7 +325,7 @@ html:-webkit-full-screen .clock-time > span {
 
 .weather-details dt {
   color: var(--display-muted);
-  font-size: calc(clamp(0.875rem, 1.8125vw, 1.1875rem) + 2.5px);
+  font-size: calc(clamp(1.05rem, 2.18vw, 1.45rem) + 2.5px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -333,7 +333,7 @@ html:-webkit-full-screen .clock-time > span {
 .weather-details dd {
   margin: 0;
   color: var(--display-ink);
-  font-size: calc(clamp(1.1875rem, 2.375vw, 1.5625rem) + 2.5px);
+  font-size: calc(clamp(1.45rem, 2.85vw, 1.95rem) + 2.5px);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -505,16 +505,18 @@ html:-webkit-full-screen .clock-time > span {
 .task-label {
   overflow: hidden;
   color: var(--display-ink);
-  font-size: clamp(0.82rem, 1.65vw, 1.08rem);
+  font-size: clamp(1rem, 2vw, 1.32rem);
   font-weight: 400;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .task-detail {
   color: var(--display-muted);
-  font-size: clamp(0.54rem, 1.05vw, 0.7rem);
+  font-size: clamp(0.64rem, 1.24vw, 0.82rem);
   letter-spacing: 0.2em;
+  line-height: 1;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -524,11 +526,11 @@ html:-webkit-full-screen .clock-time > span {
 }
 
 .tasks-section[data-density="medium"] .task-label {
-  font-size: clamp(0.74rem, 1.4vw, 0.94rem);
+  font-size: clamp(0.9rem, 1.7vw, 1.14rem);
 }
 
 .tasks-section[data-density="medium"] .task-detail {
-  font-size: clamp(0.49rem, 0.92vw, 0.64rem);
+  font-size: clamp(0.58rem, 1.08vw, 0.75rem);
 }
 
 .tasks-section[data-density="dense"] li {
@@ -541,11 +543,11 @@ html:-webkit-full-screen .clock-time > span {
 }
 
 .tasks-section[data-density="dense"] .task-label {
-  font-size: clamp(0.62rem, 1.16vw, 0.78rem);
+  font-size: clamp(0.74rem, 1.38vw, 0.94rem);
 }
 
 .tasks-section[data-density="dense"] .task-detail {
-  font-size: clamp(0.42rem, 0.78vw, 0.54rem);
+  font-size: clamp(0.5rem, 0.92vw, 0.64rem);
   letter-spacing: 0.14em;
 }
 

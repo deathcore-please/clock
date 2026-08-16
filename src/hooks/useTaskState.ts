@@ -3,7 +3,7 @@ import { loadTaskState, saveTaskState } from "../lib/task-cache";
 import { isTaskState } from "../lib/tasks";
 import { unavailableTaskState, type TaskState } from "../types/tasks";
 
-export const TASK_REFRESH_INTERVAL_MS = 2_000;
+export const TASK_REFRESH_INTERVAL_MS = 5_000;
 
 export function useTaskState(): TaskState {
   const [state, setState] = useState<TaskState>(

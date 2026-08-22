@@ -4,6 +4,7 @@ import { isTaskState } from "../lib/tasks";
 import { unavailableTaskState, type TaskState } from "../types/tasks";
 
 export const TASK_REFRESH_INTERVAL_MS = 5_000;
+export const TASK_REQUEST_TIMEOUT_MS = 8_000;
 
 export function useTaskState(): TaskState {
   const [state, setState] = useState<TaskState>(
@@ -30,14 +31,22 @@ export function useTaskState(): TaskState {
 
   const refresh = useCallback(
     async (signal?: AbortSignal) => {
-      if (requestInFlight.current) return;
+      if (signal?.aborted || requestInFlight.current) return;
       requestInFlight.current = true;
+      const requestController = new AbortController();
+      const abortRequest = () => requestController.abort();
+      signal?.addEventListener("abort", abortRequest, { once: true });
+      const timeout = window.setTimeout(
+        abortRequest,
+        TASK_REQUEST_TIMEOUT_MS,
+      );
+
       try {
         const response = await fetch("/api/tasks-state", {
           method: "GET",
           headers: { Accept: "application/json" },
           cache: "no-store",
-          signal,
+          signal: requestController.signal,
         });
         if (!response.ok) throw new Error("Task state is unavailable");
 
@@ -49,15 +58,11 @@ export function useTaskState(): TaskState {
 
         saveTaskState(nextState);
         useStateSnapshot(nextState);
-      } catch (error) {
-        if (
-          signal?.aborted ||
-          (error instanceof Error && error.name === "AbortError")
-        ) {
-          return;
-        }
-        useFallback();
+      } catch {
+        if (!signal?.aborted) useFallback();
       } finally {
+        window.clearTimeout(timeout);
+        signal?.removeEventListener("abort", abortRequest);
         requestInFlight.current = false;
       }
     },

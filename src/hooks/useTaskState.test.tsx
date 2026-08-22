@@ -1,7 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TASK_CACHE_KEY } from "../lib/task-cache";
-import { TASK_REFRESH_INTERVAL_MS, useTaskState } from "./useTaskState";
+import {
+  TASK_REFRESH_INTERVAL_MS,
+  TASK_REQUEST_TIMEOUT_MS,
+  useTaskState,
+} from "./useTaskState";
 import type { TaskState } from "../types/tasks";
 
 const readyState: TaskState = {
@@ -44,7 +48,7 @@ describe("useTaskState", () => {
     expect(localStorage.getItem(TASK_CACHE_KEY)).not.toBeNull();
   });
 
-  it("polls every two seconds and refreshes when visible", async () => {
+  it("polls every five seconds and refreshes when visible", async () => {
     vi.useFakeTimers();
     const fetcher = vi.fn(async () => Response.json(readyState));
     vi.stubGlobal("fetch", fetcher);
@@ -64,6 +68,49 @@ describe("useTaskState", () => {
       await Promise.resolve();
     });
     expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("times out a stuck request and recovers on a later poll", async () => {
+    vi.useFakeTimers();
+    const updatedState: TaskState = {
+      ...readyState,
+      updatedAt: "2026-08-12T10:01:00.000Z",
+      items: [{ ...readyState.items[0], summary: "Updated task" }],
+    };
+    const fetcher = vi.fn<typeof fetch>();
+    fetcher
+      .mockResolvedValueOnce(Response.json(readyState))
+      .mockImplementationOnce((_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+      )
+      .mockResolvedValue(Response.json(updatedState));
+    vi.stubGlobal("fetch", fetcher);
+    const { result } = renderHook(() => useTaskState());
+
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(result.current).toEqual(readyState);
+
+    await act(async () =>
+      vi.advanceTimersByTimeAsync(TASK_REFRESH_INTERVAL_MS),
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    await act(async () =>
+      vi.advanceTimersByTimeAsync(TASK_REQUEST_TIMEOUT_MS),
+    );
+    expect(result.current).toEqual({ ...readyState, status: "stale" });
+
+    await act(async () =>
+      vi.advanceTimersByTimeAsync(TASK_REFRESH_INTERVAL_MS),
+    );
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(result.current).toEqual(updatedState);
   });
 
   it("uses a cached snapshot as stale when the request fails", async () => {

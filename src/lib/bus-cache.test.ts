@@ -85,4 +85,39 @@ describe("bus browser cache", () => {
       true,
     );
   });
+
+  it("clears a cached selection after fifteen minutes without removing markers", () => {
+    const savedAt = new Date("2026-08-03T07:10:00Z");
+    const state = createMockBusState("outbound", savedAt);
+    const recordedAt = new Date(savedAt.getTime() - 14 * 60_000).toISOString();
+    const snapshot = {
+      ...state,
+      tracking: { recordedAt, ageSeconds: 14 * 60 },
+      routeVehicles: state.routeVehicles.map((vehicle, index) =>
+        index === 0
+          ? {
+              ...vehicle,
+              tracking: { recordedAt, ageSeconds: 14 * 60 },
+              status: "stale" as const,
+            }
+          : vehicle,
+      ),
+    };
+    saveBusState(snapshot, savedAt, "Europe/London");
+
+    const restored = loadBusState(
+      new Date(savedAt.getTime() + 2 * 60_000),
+      "Europe/London",
+    );
+
+    expect(restored).toMatchObject({
+      status: "not_tracking",
+      phase: "not_tracking",
+      vehicle: { id: null },
+      position: null,
+      target: null,
+      tracking: { recordedAt: null, ageSeconds: null },
+    });
+    expect(restored?.routeVehicles).toHaveLength(state.routeVehicles.length);
+  });
 });

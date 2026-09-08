@@ -24,6 +24,7 @@ export const TRINITY_STOP = {
 const STATION_GEOFENCE_METRES = 250;
 const LOCAL_CORRIDOR_METRES = 450;
 export const BUS_STALE_AFTER_SECONDS = 3 * 60;
+export const BUS_SELECTION_MAX_AGE_SECONDS = 15 * 60;
 
 export interface BusActivity {
   recordedAt: string;
@@ -329,7 +330,7 @@ export function notTrackingBusState(now = new Date()): BusState {
   return emptyBusState(now, "not_tracking");
 }
 
-function selectCandidate(exactRoute: BusActivity[]) {
+function selectCandidateByPriority(exactRoute: BusActivity[]) {
   const atStation = exactRoute
     .filter(
       (activity) =>
@@ -361,13 +362,36 @@ function selectCandidate(exactRoute: BusActivity[]) {
   return null;
 }
 
+function selectCandidate(exactRoute: BusActivity[], now: Date) {
+  const ageMilliseconds = (activity: BusActivity) =>
+    Math.max(0, now.getTime() - Date.parse(activity.recordedAt));
+  const staleAfterMilliseconds = BUS_STALE_AFTER_SECONDS * 1_000;
+  const maximumSelectionAgeMilliseconds =
+    BUS_SELECTION_MAX_AGE_SECONDS * 1_000;
+
+  const fresh = exactRoute.filter(
+    (activity) => ageMilliseconds(activity) < staleAfterMilliseconds,
+  );
+  const recentStale = exactRoute.filter((activity) => {
+    const age = ageMilliseconds(activity);
+    return (
+      age >= staleAfterMilliseconds && age <= maximumSelectionAgeMilliseconds
+    );
+  });
+
+  return (
+    selectCandidateByPriority(fresh) ??
+    selectCandidateByPriority(recentStale)
+  );
+}
+
 export function normaliseBusActivities(
   activities: BusActivity[],
   now = new Date(),
 ): BusState {
   const exactRoute = latestRouteActivities(activities);
   const routeVehicles = exactRoute.map((activity) => routeVehicle(activity, now));
-  const selected = selectCandidate(exactRoute);
+  const selected = selectCandidate(exactRoute, now);
   if (!selected) {
     return {
       ...notTrackingBusState(now),

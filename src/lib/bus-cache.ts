@@ -1,5 +1,8 @@
 import type { BusState, RouteBusVehicle } from "../types/bus";
-import { BUS_STALE_AFTER_SECONDS } from "./bus";
+import {
+  BUS_SELECTION_MAX_AGE_SECONDS,
+  BUS_STALE_AFTER_SECONDS,
+} from "./bus";
 
 export const BUS_CACHE_KEY = "wall-clock-bus-state-v2";
 const MAX_CACHE_AGE_MS = 5 * 60 * 1_000;
@@ -36,6 +39,33 @@ function refreshVehicleAge(vehicle: RouteBusVehicle, now: Date): RouteBusVehicle
     ...vehicle,
     tracking: { ...vehicle.tracking, ageSeconds: age },
     status: age >= BUS_STALE_AFTER_SECONDS ? "stale" : "ready",
+  };
+}
+
+function selectedVehicleIsTooOld(state: BusState, now: Date) {
+  if (!state.position || !state.tracking.recordedAt) return false;
+  const recordedAt = Date.parse(state.tracking.recordedAt);
+  return (
+    !Number.isFinite(recordedAt) ||
+    now.getTime() - recordedAt > BUS_SELECTION_MAX_AGE_SECONDS * 1_000
+  );
+}
+
+function clearSelectedVehicle(
+  state: BusState,
+  routeVehicles: RouteBusVehicle[],
+): BusState {
+  return {
+    ...state,
+    status: "not_tracking",
+    service: { ...state.service, direction: null, destination: null },
+    phase: "not_tracking",
+    vehicle: { id: null },
+    position: null,
+    target: null,
+    tracking: { recordedAt: null, ageSeconds: null },
+    routeVehicles,
+    punctuality: { status: "unknown", deviationMinutes: null },
   };
 }
 
@@ -79,6 +109,12 @@ export function loadBusState(
           cached.state.tracking.ageSeconds ?? 0,
         )
       : null;
+    const routeVehicles = cached.state.routeVehicles.map((vehicle) =>
+      refreshVehicleAge(vehicle, now),
+    );
+    if (selectedVehicleIsTooOld(cached.state, now)) {
+      return clearSelectedVehicle(cached.state, routeVehicles);
+    }
     return {
       ...cached.state,
       status: cached.state.position ? "stale" : cached.state.status,
@@ -86,9 +122,7 @@ export function loadBusState(
         ...cached.state.tracking,
         ageSeconds: selectedAge,
       },
-      routeVehicles: cached.state.routeVehicles.map((vehicle) =>
-        refreshVehicleAge(vehicle, now),
-      ),
+      routeVehicles,
     };
   } catch {
     return null;

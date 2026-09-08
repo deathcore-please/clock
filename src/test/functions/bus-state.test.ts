@@ -82,6 +82,32 @@ describe("Cloudflare bus-state function", () => {
     expect(JSON.stringify(state)).not.toContain("top-secret");
   });
 
+  it("matches liveries when BODS returns a bare fleet code as the vehicle ID", async () => {
+    const fetcher = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      return url.hostname === "bustimes.org"
+        ? Response.json(bustimesFleet)
+        : new Response(xml.replace("CSLB-80456", "80456"));
+    });
+
+    const state = await fetchBusState(
+      { BODS_API_KEY: "secret" },
+      fetcher as typeof fetch,
+      100,
+      new Date("2026-08-03T07:10:00Z"),
+    );
+
+    expect(state.routeVehicles[0]).toMatchObject({
+      id: "80456",
+      livery: {
+        id: 3384,
+        name: "Carousel Country",
+        colours: ["#ee1d23", "#94111e"],
+        angleDegrees: 60,
+      },
+    });
+  });
+
   it("normalises safe livery data without returning raw Bustimes CSS", () => {
     const lookup = normaliseBustimesFleet({
       results: [

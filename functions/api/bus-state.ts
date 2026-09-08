@@ -199,8 +199,10 @@ async function fetchLiveryLookup(fetcher: Fetcher): Promise<LiveryLookup> {
 }
 
 function fleetCode(vehicleId: string): string | null {
-  const match = /^CSLB-(.+)$/i.exec(vehicleId.trim());
-  return match?.[1]?.trim().toUpperCase() || null;
+  const normalized = vehicleId.trim().toUpperCase();
+  if (!normalized) return null;
+  const match = /^CSLB-(.+)$/.exec(normalized);
+  return match?.[1]?.trim() || normalized;
 }
 
 function applyLiveries(state: BusState, lookup: LiveryLookup): BusState {

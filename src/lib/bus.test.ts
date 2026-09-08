@@ -174,6 +174,123 @@ describe("BODS bus normalisation", () => {
     });
   });
 
+  it("never lets an old station position outrank a fresh outbound bus", () => {
+    const state = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "old-station",
+          recordedAt: new Date(now.getTime() - 800 * 60_000).toISOString(),
+        }),
+        activity({
+          vehicleRef: "fresh-outbound",
+          latitude: 51.62925,
+          longitude: -0.7494,
+        }),
+      ],
+      now,
+    );
+
+    expect(state.vehicle.id).toBe("fresh-outbound");
+    expect(state.phase).toBe("toward_trinity");
+    expect(state.routeVehicles.map((vehicle) => vehicle.id)).toContain(
+      "old-station",
+    );
+  });
+
+  it("prefers fresh positions before applying outbound and inbound proximity", () => {
+    const staleRecordedAt = new Date(now.getTime() - 4 * 60_000).toISOString();
+    const staleOutbound = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "stale-near-trinity",
+          recordedAt: staleRecordedAt,
+          latitude: 51.6275,
+          longitude: -0.744,
+        }),
+        activity({
+          vehicleRef: "fresh-farther-outbound",
+          latitude: 51.6302,
+          longitude: -0.752,
+        }),
+      ],
+      now,
+    );
+    expect(staleOutbound.vehicle.id).toBe("fresh-farther-outbound");
+
+    const staleInbound = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "stale-inbound-at-station",
+          recordedAt: staleRecordedAt,
+          directionRef: "inbound",
+          originRef: "035000000001",
+          destinationRef: HIGH_WYCOMBE_STOP.stopId,
+          destinationName: "High Wycombe",
+        }),
+        activity({
+          vehicleRef: "fresh-inbound",
+          directionRef: "inbound",
+          originRef: "035000000001",
+          destinationRef: HIGH_WYCOMBE_STOP.stopId,
+          destinationName: "High Wycombe",
+          latitude: 51.6373,
+          longitude: -0.7105,
+        }),
+      ],
+      now,
+    );
+    expect(staleInbound.vehicle.id).toBe("fresh-inbound");
+  });
+
+  it("uses recent stale positions only when no fresh candidate qualifies", () => {
+    const atThreeMinutes = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "recent-stale",
+          recordedAt: new Date(now.getTime() - 180_000).toISOString(),
+        }),
+      ],
+      now,
+    );
+    expect(atThreeMinutes).toMatchObject({
+      status: "stale",
+      phase: "at_station",
+      vehicle: { id: "recent-stale" },
+    });
+
+    const atFifteenMinutes = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "maximum-age",
+          recordedAt: new Date(now.getTime() - 15 * 60_000).toISOString(),
+        }),
+      ],
+      now,
+    );
+    expect(atFifteenMinutes.vehicle.id).toBe("maximum-age");
+
+    const tooOld = normaliseBusActivities(
+      [
+        activity({
+          vehicleRef: "too-old",
+          recordedAt: new Date(now.getTime() - 15 * 60_000 - 1).toISOString(),
+        }),
+      ],
+      now,
+    );
+    expect(tooOld).toMatchObject({
+      status: "not_tracking",
+      phase: "not_tracking",
+      vehicle: { id: null },
+      position: null,
+    });
+    expect(tooOld.routeVehicles).toHaveLength(1);
+    expect(tooOld.routeVehicles[0]).toMatchObject({
+      id: "too-old",
+      status: "stale",
+    });
+  });
+
   it("computes early, on-time, and late states", () => {
 
     const late = normaliseSiriVm(siriXml(), now);

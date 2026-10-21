@@ -230,6 +230,7 @@ export default function App() {
       style={ambientTheme.style}
       data-ambient-theme={ambientTheme.mode}
     >
+      <div className="display-viewport">
       <section
         className={`dashboard${showCommute ? " commute-dashboard" : ""}`}
         aria-label={showCommute ? "Route 37 commute dashboard" : "Wall clock and weather dashboard"}
@@ -370,6 +371,7 @@ export default function App() {
           </>
         )}
       </section>
+      </div>
     </main>
   );
 }

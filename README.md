@@ -111,6 +111,17 @@ outbound requests; it does not need a public URL or port forwarding.
 
 ## Raspberry Pi Chromium
 
+Portrait views include a pure-black frame to balance the rotated monitor's left
+chin. The extra top/right/bottom thicknesses start at 16/40/32 pixels at a 1080px
+viewport width and scale with that width; no extra left strip is added. The full
+dashboard scales together to fit inside the frame in both clock and commute
+views, before and after fullscreen. Landscape views keep their existing layout.
+
+For monitor calibration, adjust only `--bezel-top`, `--bezel-right`, and
+`--bezel-bottom` together at the top of `src/styles.css`. These are unitless pixel
+values relative to 1080px width. Commit and redeploy, then refresh Chromium on the
+Pi to check each trial. The extra top inset supplements any existing Pi OS strip.
+
 On Raspberry Pi OS Desktop, open the deployed URL in Chromium and select
 **Full screen**. A normal press of `Escape` exits the page's fullscreen mode.
 

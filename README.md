@@ -112,10 +112,12 @@ outbound requests; it does not need a public URL or port forwarding.
 ## Raspberry Pi Chromium
 
 Portrait views include a pure-black frame to balance the rotated monitor's left
-chin. The extra top/right/bottom thicknesses start at 16/40/32 pixels at a 1080px
+chin. The extra top/right/bottom thicknesses start at 10/40/32 pixels at a 1080px
 viewport width and scale with that width; no extra left strip is added. The full
 dashboard scales together to fit inside the frame in both clock and commute
-views, before and after fullscreen. Landscape views keep their existing layout.
+views, before and after fullscreen. The frame is pinned to the viewport edges so
+content sizing cannot displace the bottom strip. Landscape views keep their
+existing layout.
 
 For monitor calibration, adjust only `--bezel-top`, `--bezel-right`, and
 `--bezel-bottom` together at the top of `src/styles.css`. These are unitless pixel

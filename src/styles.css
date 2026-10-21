@@ -1,7 +1,7 @@
 :root {
   /* Extra portrait bezel: unitless pixel values at a 1080px viewport width.
      Tune only these three values after checking the physical monitor. */
-  --bezel-top: 16;
+  --bezel-top: 10;
   --bezel-right: 40;
   --bezel-bottom: 32;
 
@@ -813,13 +813,20 @@ footer {
     --bezel-right-size: calc(var(--bezel-right) * var(--bezel-unit));
     --bezel-bottom-size: calc(var(--bezel-bottom) * var(--bezel-unit));
     --dashboard-scale: calc(1 - var(--bezel-right) / 1080);
-    padding: var(--bezel-top-size) var(--bezel-right-size)
-      var(--bezel-bottom-size) 0;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
     background: #000;
   }
 
   .display-viewport {
-    position: relative;
+    /* Reserve the bottom strip independently of grid/content sizing. */
+    position: absolute;
+    inset: var(--bezel-top-size) var(--bezel-right-size)
+      var(--bezel-bottom-size) 0;
+    width: auto;
+    height: auto;
   }
 
   .dashboard {

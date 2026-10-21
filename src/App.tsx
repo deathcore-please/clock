@@ -111,7 +111,13 @@ export default function App() {
   const ambientLight = useAmbientLightState();
   const taskState = useTaskState();
   const now = useClock();
-  const { isFullscreen, cursorHidden, canFullscreen, enterFullscreen } = useFullscreen();
+  const {
+    fullscreenRef,
+    isFullscreen,
+    cursorHidden,
+    canFullscreen,
+    enterFullscreen,
+  } = useFullscreen();
   const timezone = dashboardState.weather.location.timezone;
   const clock = formatClockParts(now, timezone);
   const newDelhiClock = formatClockParts(now, NEW_DELHI_TIMEZONE);
@@ -226,6 +232,7 @@ export default function App() {
 
   return (
     <main
+      ref={fullscreenRef}
       className={`viewport-shell${cursorHidden ? " cursor-hidden" : ""}`}
       style={ambientTheme.style}
       data-ambient-theme={ambientTheme.mode}

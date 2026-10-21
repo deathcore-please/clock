@@ -115,17 +115,22 @@ Portrait views include a pure-black frame to balance the rotated monitor's left
 chin. The extra top/right/bottom thicknesses start at 10/40/32 pixels at a 1080px
 viewport width and scale with that width; no extra left strip is added. The full
 dashboard scales together to fit inside the frame in both clock and commute
-views, before and after fullscreen. The frame is pinned to the viewport edges so
-content sizing cannot displace the bottom strip. Landscape views keep their
-existing layout.
+views, before and after fullscreen. The content scales from the frame's actual
+inner dimensions, with space reserved at its top, right and bottom edges.
+Landscape views keep their existing layout.
 
 For monitor calibration, adjust only `--bezel-top`, `--bezel-right`, and
 `--bezel-bottom` together at the top of `src/styles.css`. These are unitless pixel
 values relative to 1080px width. Commit and redeploy, then refresh Chromium on the
-Pi to check each trial. The extra top inset supplements any existing Pi OS strip.
+Pi to check each trial. A previous accidental top band may disappear with the
+fullscreen correction; check the Pi before recalibrating the explicit top inset.
 
 On Raspberry Pi OS Desktop, open the deployed URL in Chromium and select
 **Full screen**. A normal press of `Escape` exits the page's fullscreen mode.
+The button makes the outer dashboard frame fullscreen and requests hidden browser
+navigation. After deployment, compare it with F11 on the Pi: both should show the
+bottom strip, including after repeated entries and exits. Desktop checks cannot
+confirm the Raspberry Pi Chromium compositor behaviour.
 
 For automatic browser fullscreen at desktop login, add a Chromium launch line to
 `~/.config/labwc/autostart`:

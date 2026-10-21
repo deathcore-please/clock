@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const CURSOR_IDLE_MS = 3_000;
 
 export function useFullscreen() {
+  const fullscreenRef = useRef<HTMLElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(
     () => document.fullscreenElement !== null,
   );
@@ -40,13 +41,14 @@ export function useFullscreen() {
   }, [resetCursorTimer]);
 
   const enterFullscreen = useCallback(async () => {
-    await document.documentElement.requestFullscreen();
+    await fullscreenRef.current?.requestFullscreen({ navigationUI: "hide" });
   }, []);
 
   return {
+    fullscreenRef,
     isFullscreen,
     cursorHidden,
-    canFullscreen: typeof document.documentElement.requestFullscreen === "function",
+    canFullscreen: typeof HTMLElement.prototype.requestFullscreen === "function",
     enterFullscreen,
   };
 }

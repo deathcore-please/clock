@@ -49,7 +49,7 @@ beforeEach(() => {
     configurable: true,
     get: () => null,
   });
-  Object.defineProperty(document.documentElement, "requestFullscreen", {
+  Object.defineProperty(HTMLElement.prototype, "requestFullscreen", {
     configurable: true,
     value: vi.fn(async () => undefined),
   });
@@ -61,7 +61,7 @@ afterEach(() => {
   vi.useRealTimers();
   window.history.replaceState({}, "", "/");
   Reflect.deleteProperty(document, "fullscreenElement");
-  Reflect.deleteProperty(document.documentElement, "requestFullscreen");
+  Reflect.deleteProperty(HTMLElement.prototype, "requestFullscreen");
 });
 
 describe("wall clock dashboard", () => {
@@ -98,32 +98,56 @@ describe("wall clock dashboard", () => {
     expect(laterWindow[0].at).not.toBe(firstWindow[0].at);
   });
 
-  it("enters fullscreen from the visible control", async () => {
-    render(<App />);
+  it("requests fullscreen on the outer frame with navigation hidden", async () => {
+    const { container } = render(<App />);
     const button = screen.getByRole("button", { name: "Enter fullscreen" });
     fireEvent.click(button);
     await waitFor(() =>
-      expect(document.documentElement.requestFullscreen).toHaveBeenCalledOnce(),
+      expect(HTMLElement.prototype.requestFullscreen).toHaveBeenCalledOnce(),
     );
+    expect(HTMLElement.prototype.requestFullscreen).toHaveBeenCalledWith({
+      navigationUI: "hide",
+    });
+    expect(
+      vi.mocked(HTMLElement.prototype.requestFullscreen).mock.contexts[0],
+    ).toBe(container.querySelector(".viewport-shell"));
   });
 
-  it("hides the cursor after three idle seconds in fullscreen", async () => {
+  it("hides the cursor in fullscreen and restores the control and cursor on exit", async () => {
     vi.useFakeTimers();
+    let fullscreenElement: Element | null = null;
     Object.defineProperty(document, "fullscreenElement", {
       configurable: true,
-      get: () => document.documentElement,
+      get: () => fullscreenElement,
     });
 
     const { container } = render(<App />);
-    act(() => {
+    await act(async () => {
+      fullscreenElement = container.querySelector(".viewport-shell");
       document.dispatchEvent(new Event("fullscreenchange"));
     });
-    act(() => {
+    expect(screen.queryByRole("button", { name: "Enter fullscreen" })).not.toBeInTheDocument();
+    await act(async () => {
       vi.advanceTimersByTime(3_001);
     });
     expect(container.querySelector(".viewport-shell")).toHaveClass("cursor-hidden");
 
     fireEvent.pointerMove(document);
+    expect(container.querySelector(".viewport-shell")).not.toHaveClass("cursor-hidden");
+    await act(async () => {
+      vi.advanceTimersByTime(3_001);
+    });
+    expect(container.querySelector(".viewport-shell")).toHaveClass("cursor-hidden");
+
+    await act(async () => {
+      fullscreenElement = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+    expect(screen.getByRole("button", { name: "Enter fullscreen" })).toBeInTheDocument();
+    expect(container.querySelector(".viewport-shell")).not.toHaveClass("cursor-hidden");
+    await act(async () => {
+      vi.advanceTimersByTime(3_001);
+    });
     expect(container.querySelector(".viewport-shell")).not.toHaveClass("cursor-hidden");
     vi.useRealTimers();
   });

@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const leafletMocks = vi.hoisted(() => {
   const routeLayer = { addTo: vi.fn() };
@@ -77,7 +77,47 @@ beforeEach(() => {
   leafletMocks.markerInstances.length = 0;
 });
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe("BusMap route geometry", () => {
+  it("invalidates only logical size changes without remounting or refitting", () => {
+    let notifyResize = () => {};
+    const disconnect = vi.fn();
+    vi.stubGlobal("ResizeObserver", class {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = disconnect;
+      constructor(callback: ResizeObserverCallback) {
+        notifyResize = () => callback([], this);
+      }
+    });
+    const { container, unmount } = render(<BusMap state={createMockBusState("outbound")} />);
+    const element = container.querySelector(".bus-map") as HTMLElement;
+    let width = 0;
+    let height = 0;
+    Object.defineProperties(element, {
+      clientWidth: { get: () => width },
+      clientHeight: { get: () => height },
+    });
+    const fitCount = leafletMocks.mapInstance.fitBounds.mock.calls.length;
+    const resizeCount = leafletMocks.mapInstance.invalidateSize.mock.calls.length;
+
+    act(() => notifyResize());
+    expect(leafletMocks.mapInstance.invalidateSize).toHaveBeenCalledTimes(resizeCount);
+    width = 928;
+    height = 1000;
+    act(() => notifyResize());
+    expect(leafletMocks.mapInstance.invalidateSize).toHaveBeenCalledTimes(resizeCount + 1);
+
+    element.style.transform = "scale(0.5)";
+    act(() => notifyResize());
+    expect(leafletMocks.mapInstance.invalidateSize).toHaveBeenCalledTimes(resizeCount + 1);
+    expect(leafletMocks.map).toHaveBeenCalledOnce();
+    expect(leafletMocks.mapInstance.fitBounds).toHaveBeenCalledTimes(fitCount);
+    unmount();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
   it("adds one solid, non-interactive route layer across position updates", () => {
     const initialState = createMockBusState("outbound");
     const { rerender } = render(<BusMap state={initialState} />);

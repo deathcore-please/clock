@@ -1,6 +1,7 @@
 :root {
-  /* Extra portrait bezel: unitless pixel values at a 1080px viewport width.
-     Tune only these three values after checking the physical monitor. */
+  /* Bezel thicknesses in pixels on the fixed 1080 × 1920 canvas.
+     Tune only these three values after checking the physical monitor.
+     The left edge has no extra strip: the monitor already supplies its chin. */
   --bezel-top: 10;
   --bezel-right: 40;
   --bezel-bottom: 32;
@@ -32,11 +33,11 @@ html,
 body,
 #root {
   width: 100%;
-  min-width: 320px;
+  min-width: 0;
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: var(--display-background);
+  background: #000;
 }
 
 button {
@@ -45,12 +46,12 @@ button {
 
 .viewport-shell {
   --ambient-rgb: 255, 255, 255;
-  display: grid;
-  width: 100vw;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  place-items: center;
-  background: var(--display-background);
+  background: #000;
 }
 
 .viewport-shell::backdrop {
@@ -62,32 +63,80 @@ button {
   cursor: none !important;
 }
 
-.display-viewport {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
+.display-stage {
+  --dashboard-scale: calc(1 - var(--bezel-right) / 1080);
+  position: absolute;
   overflow: hidden;
-  place-items: center;
+  isolation: isolate;
+  transform-origin: top left;
+  background: #000;
 }
 
+.display-viewport {
+  position: absolute;
+  inset: calc(var(--bezel-top) * 1px) calc(var(--bezel-right) * 1px)
+    calc(var(--bezel-bottom) * 1px) 0;
+  z-index: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Actual opaque paint above the clipped content, not just its parent's background. */
+.display-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.display-bezel {
+  position: absolute;
+  background: #000;
+}
+
+.display-bezel--top {
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(var(--bezel-top) * 1px);
+}
+
+.display-bezel--right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--bezel-right) * 1px);
+}
+
+.display-bezel--bottom {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(var(--bezel-bottom) * 1px);
+}
+
+/* Design-space sizes below are evaluated at 1080 × 1920, never the browser viewport. */
 .dashboard {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   display: grid;
-  width: min(100vw, calc(100dvh * 0.5625));
-  height: 100dvh;
+  /* Preserve the existing framed composition, including its flexible row heights. */
+  width: calc(100% / var(--dashboard-scale));
+  height: calc(100% / var(--dashboard-scale));
+  transform: scale(var(--dashboard-scale));
+  transform-origin: top left;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows:
     auto minmax(20rem, 1.12fr) auto auto
     minmax(17rem, 0.88fr) 0.9rem;
-  gap: clamp(1.25rem, 2.15vh, 2.6rem);
+  gap: clamp(1.25rem, 41.28px, 2.6rem);
   padding:
-    max(clamp(2.25rem, 5.2vw, 3.5rem), env(safe-area-inset-top))
-    max(clamp(2rem, 5.2vw, 3.5rem), env(safe-area-inset-right))
-    max(clamp(1.25rem, 3.2vw, 2.1rem), env(safe-area-inset-bottom))
-    max(clamp(2rem, 5.2vw, 3.5rem), env(safe-area-inset-left));
+    clamp(2.25rem, 56.16px, 3.5rem)
+    clamp(2rem, 56.16px, 3.5rem)
+    clamp(1.25rem, 34.56px, 2.1rem)
+    clamp(2rem, 56.16px, 3.5rem);
   overflow: hidden;
   background: var(--display-background);
 }
@@ -110,7 +159,7 @@ footer {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding-bottom: clamp(1rem, 1.6vh, 1.9rem);
+  padding-bottom: clamp(1rem, 30.72px, 1.9rem);
   border-bottom: 1px solid var(--display-line-soft);
 }
 
@@ -123,7 +172,7 @@ footer {
 
 .date {
   color: var(--display-muted);
-  font-size: clamp(1rem, 2.1vw, 1.45rem);
+  font-size: clamp(1rem, 22.68px, 1.45rem);
   font-weight: 400;
   letter-spacing: 0.3em;
   line-height: 1.2;
@@ -131,10 +180,13 @@ footer {
 }
 
 .dashboard:not(.commute-dashboard) .date {
-  font-size: clamp(1.25rem, 2.625vw, 1.8125rem);
+  font-size: clamp(1.25rem, 28.35px, 1.8125rem);
 }
 
 .fullscreen-button {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: inline-flex;
   min-height: 2.8rem;
   align-items: center;
@@ -145,7 +197,7 @@ footer {
   background: var(--display-ink);
   color: var(--display-background);
   cursor: pointer;
-  font-size: clamp(0.66rem, 1.3vw, 0.82rem);
+  font-size: clamp(0.66rem, 14.04px, 0.82rem);
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -184,21 +236,11 @@ footer {
   min-width: 0;
   align-items: center;
   justify-content: center;
-  transform: translateY(-5rem) scaleX(0.92);
-}
-
-.clock-time > span {
-  font-size: clamp(11.1375rem, 42.075vw, 28.4625rem);
-}
-
-.viewport-shell:fullscreen .clock-time,
-.viewport-shell:-webkit-full-screen .clock-time {
   transform: translate(0.4rem, -5rem) scaleX(0.92);
 }
 
-.viewport-shell:fullscreen .clock-time > span,
-.viewport-shell:-webkit-full-screen .clock-time > span {
-  font-size: clamp(10.89rem, 41.45625vw, 27.84375rem);
+.clock-time > span {
+  font-size: clamp(10.89rem, 447.7275px, 27.84375rem);
 }
 
 .clock-colon {
@@ -209,9 +251,9 @@ footer {
 .seconds {
   position: absolute;
   right: 0;
-  bottom: clamp(0.35rem, 1.35vh, 1.2rem);
+  bottom: clamp(0.35rem, 25.92px, 1.2rem);
   color: var(--display-muted);
-  font-size: clamp(1.7rem, 5.4vw, 3.8rem);
+  font-size: clamp(1.7rem, 58.32px, 3.8rem);
   font-weight: 400;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -219,7 +261,7 @@ footer {
 
 .secondary-clock {
   position: absolute;
-  bottom: clamp(0.35rem, 1.35vh, 1.2rem);
+  bottom: clamp(0.35rem, 25.92px, 1.2rem);
   left: 0;
   display: grid;
   grid-template-areas:
@@ -227,7 +269,7 @@ footer {
     "time offset";
   grid-template-columns: auto auto;
   align-items: end;
-  column-gap: clamp(1rem, 2.4vw, 1.7rem);
+  column-gap: clamp(1rem, 25.92px, 1.7rem);
   row-gap: 0.55rem;
   color: var(--display-muted);
   letter-spacing: normal;
@@ -236,7 +278,7 @@ footer {
 
 .secondary-clock-location {
   grid-area: location;
-  font-size: clamp(0.62rem, 1.35vw, 0.9rem);
+  font-size: clamp(0.62rem, 14.58px, 0.9rem);
   letter-spacing: 0.27em;
   text-transform: uppercase;
   transform: translateX(0.5rem);
@@ -245,7 +287,7 @@ footer {
 .secondary-clock-time {
   grid-area: time;
   color: var(--display-ink);
-  font-size: clamp(2.9375rem, 8vw, 5.625rem);
+  font-size: clamp(2.9375rem, 86.4px, 5.625rem);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.025em;
   line-height: 0.82;
@@ -254,7 +296,7 @@ footer {
 .secondary-clock-offset {
   grid-area: offset;
   padding-bottom: 0.08em;
-  font-size: clamp(0.58rem, 1.25vw, 0.82rem);
+  font-size: clamp(0.58rem, 13.5px, 0.82rem);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -283,26 +325,26 @@ footer {
 
 .current-weather {
   display: grid;
-  min-height: clamp(17rem, 16vh, 20rem);
+  min-height: clamp(17rem, 307.2px, 20rem);
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  gap: clamp(2.5rem, 6vw, 4.5rem);
-  padding: clamp(1.8rem, 3.6vw, 2.3rem);
+  gap: clamp(2.5rem, 64.8px, 4.5rem);
+  padding: clamp(1.8rem, 38.88px, 2.3rem);
 }
 
 .current-summary {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: clamp(1.15rem, 2.6vw, 1.8rem);
+  gap: clamp(1.15rem, 28.08px, 1.8rem);
 }
 
 .current-icon {
-  width: clamp(5.5rem, 14vw, 9rem);
+  width: clamp(5.5rem, 151.2px, 9rem);
   flex: 0 0 auto;
   color: var(--display-ink);
   font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
-  font-size: clamp(5.5rem, 13vw, 8.5rem);
+  font-size: clamp(5.5rem, 140.4px, 8.5rem);
   line-height: 0.9;
   text-align: center;
 }
@@ -310,7 +352,7 @@ footer {
 .temperature {
   margin: 0;
   color: var(--display-ink);
-  font-size: clamp(5rem, 17vw, 11.5rem);
+  font-size: clamp(5rem, 183.6px, 11.5rem);
   font-weight: 400;
   letter-spacing: -0.055em;
   line-height: 0.82;
@@ -320,7 +362,7 @@ footer {
   margin-top: 0.65rem;
   overflow: hidden;
   color: var(--display-muted);
-  font-size: clamp(0.9rem, 2vw, 1.25rem);
+  font-size: clamp(0.9rem, 21.6px, 1.25rem);
   letter-spacing: 0.18em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -337,7 +379,7 @@ footer {
 
 .weather-details div {
   display: flex;
-  min-height: clamp(3rem, 4.6vh, 3.8rem);
+  min-height: clamp(3rem, 88.32px, 3.8rem);
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
@@ -345,7 +387,7 @@ footer {
 
 .weather-details dt {
   color: var(--display-muted);
-  font-size: calc(clamp(1.05rem, 2.18vw, 1.45rem) + 2.5px);
+  font-size: calc(clamp(1.05rem, 23.544px, 1.45rem) + 2.5px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -353,7 +395,7 @@ footer {
 .weather-details dd {
   margin: 0;
   color: var(--display-ink);
-  font-size: calc(clamp(1.45rem, 2.85vw, 1.95rem) + 2.5px);
+  font-size: calc(clamp(1.45rem, 30.78px, 1.95rem) + 2.5px);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -363,7 +405,7 @@ footer {
   min-height: 8rem;
   align-items: center;
   gap: 1.5rem;
-  padding: clamp(1.3rem, 3vw, 2rem);
+  padding: clamp(1.3rem, 32.4px, 2rem);
 }
 
 .weather-unavailable > span {
@@ -399,7 +441,7 @@ footer {
 .forecast-card,
 .forecast-placeholder span {
   min-width: 0;
-  min-height: clamp(7rem, 9.4vh, 10rem);
+  min-height: clamp(7rem, 180.48px, 10rem);
   border: 0;
   border-right: 1px solid var(--display-line-soft);
   border-radius: 0;
@@ -416,13 +458,13 @@ footer {
   align-items: center;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(0.75rem, 1.7vw, 1.2rem) 0.3rem;
+  padding: clamp(0.75rem, 18.36px, 1.2rem) 0.3rem;
   text-align: center;
 }
 
 .forecast-card time {
   color: var(--display-muted);
-  font-size: clamp(0.775rem, 1.625vw, 1.025rem);
+  font-size: clamp(0.775rem, 17.55px, 1.025rem);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.2em;
 }
@@ -432,13 +474,13 @@ footer {
   margin: 0.4rem 0 0.2rem;
   color: var(--display-ink);
   font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
-  font-size: clamp(1.8rem, 4.2vw, 2.8rem);
+  font-size: clamp(1.8rem, 45.36px, 2.8rem);
   line-height: 1;
 }
 
 .forecast-card strong {
   color: var(--display-ink);
-  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+  font-size: clamp(1.25rem, 30.24px, 1.8rem);
   font-weight: 400;
 }
 
@@ -450,7 +492,7 @@ footer {
   display: flex;
   min-height: 0;
   flex-direction: column;
-  padding: clamp(1.25rem, 2.8vw, 1.85rem);
+  padding: clamp(1.25rem, 30.24px, 1.85rem);
   overflow: hidden;
 }
 
@@ -460,14 +502,14 @@ footer {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: clamp(0.8rem, 1.4vh, 1.35rem);
+  padding-bottom: clamp(0.8rem, 26.88px, 1.35rem);
   border-bottom: 1px solid var(--display-line);
 }
 
 .tasks-heading h2 {
   margin: 0;
   color: var(--display-ink);
-  font-size: clamp(0.78rem, 1.5vw, 0.98rem);
+  font-size: clamp(0.78rem, 16.2px, 0.98rem);
   font-weight: 400;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -475,7 +517,7 @@ footer {
 
 .tasks-heading span {
   color: var(--display-muted);
-  font-size: clamp(0.56rem, 1.05vw, 0.7rem);
+  font-size: clamp(0.56rem, 11.34px, 0.7rem);
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
@@ -495,12 +537,12 @@ footer {
   min-height: 0;
   align-items: center;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: clamp(0.8rem, 1.7vw, 1.1rem);
+  gap: clamp(0.8rem, 18.36px, 1.1rem);
   border-bottom: 1px solid var(--display-line-soft);
 }
 
 .tasks-section[data-density="compact"] ul {
-  grid-auto-rows: clamp(3.8rem, 5.2vh, 4.9rem);
+  grid-auto-rows: clamp(3.8rem, 99.84px, 4.9rem);
 }
 
 .tasks-section[data-density="medium"] ul {
@@ -516,8 +558,8 @@ footer {
 }
 
 .task-marker {
-  width: clamp(0.7rem, 1.35vw, 0.88rem);
-  height: clamp(0.7rem, 1.35vw, 0.88rem);
+  width: clamp(0.7rem, 14.58px, 0.88rem);
+  height: clamp(0.7rem, 14.58px, 0.88rem);
   border: 1px solid var(--display-ink);
   border-radius: 50%;
 }
@@ -525,7 +567,7 @@ footer {
 .task-label {
   overflow: hidden;
   color: var(--display-ink);
-  font-size: clamp(1rem, 2vw, 1.32rem);
+  font-size: clamp(1rem, 21.6px, 1.32rem);
   font-weight: 400;
   line-height: 1;
   text-overflow: ellipsis;
@@ -534,7 +576,7 @@ footer {
 
 .task-detail {
   color: var(--display-muted);
-  font-size: clamp(0.64rem, 1.24vw, 0.82rem);
+  font-size: clamp(0.64rem, 13.392px, 0.82rem);
   letter-spacing: 0.2em;
   line-height: 1;
   text-transform: uppercase;
@@ -542,46 +584,46 @@ footer {
 }
 
 .tasks-section[data-density="medium"] li {
-  gap: clamp(0.65rem, 1.35vw, 0.9rem);
+  gap: clamp(0.65rem, 14.58px, 0.9rem);
 }
 
 .tasks-section[data-density="medium"] .task-label {
-  font-size: clamp(0.9rem, 1.7vw, 1.14rem);
+  font-size: clamp(0.9rem, 18.36px, 1.14rem);
 }
 
 .tasks-section[data-density="medium"] .task-detail {
-  font-size: clamp(0.58rem, 1.08vw, 0.75rem);
+  font-size: clamp(0.58rem, 11.664px, 0.75rem);
 }
 
 .tasks-section[data-density="dense"] li {
-  gap: clamp(0.45rem, 1vw, 0.7rem);
+  gap: clamp(0.45rem, 10.8px, 0.7rem);
 }
 
 .tasks-section[data-density="dense"] .task-marker {
-  width: clamp(0.52rem, 1vw, 0.68rem);
-  height: clamp(0.52rem, 1vw, 0.68rem);
+  width: clamp(0.52rem, 10.8px, 0.68rem);
+  height: clamp(0.52rem, 10.8px, 0.68rem);
 }
 
 .tasks-section[data-density="dense"] .task-label {
-  font-size: clamp(0.74rem, 1.38vw, 0.94rem);
+  font-size: clamp(0.74rem, 14.904px, 0.94rem);
 }
 
 .tasks-section[data-density="dense"] .task-detail {
-  font-size: clamp(0.5rem, 0.92vw, 0.64rem);
+  font-size: clamp(0.5rem, 9.936px, 0.64rem);
   letter-spacing: 0.14em;
 }
 
 .tasks-empty {
-  margin: clamp(1.35rem, 2.5vh, 2.1rem) 0 0;
+  margin: clamp(1.35rem, 48px, 2.1rem) 0 0;
   color: var(--display-muted);
-  font-size: clamp(0.78rem, 1.45vw, 0.96rem);
+  font-size: clamp(0.78rem, 15.66px, 0.96rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 footer {
   color: var(--display-muted);
-  font-size: clamp(0.55rem, 1vw, 0.68rem);
+  font-size: clamp(0.55rem, 10.8px, 0.68rem);
   letter-spacing: 0.16em;
   text-align: center;
   text-transform: uppercase;
@@ -589,12 +631,12 @@ footer {
 
 .dashboard.commute-dashboard {
   grid-template-rows: auto auto auto minmax(20rem, 1fr) auto;
-  gap: clamp(1rem, 1.8vh, 2rem);
+  gap: clamp(1rem, 34.56px, 2rem);
 }
 
 .commute-clock {
   color: var(--display-ink);
-  font-size: clamp(4.5rem, 16vw, 10.5rem);
+  font-size: clamp(4.5rem, 172.8px, 10.5rem);
   font-variant-numeric: tabular-nums lining-nums;
   font-weight: 400;
   letter-spacing: -0.055em;
@@ -607,20 +649,20 @@ footer {
   min-width: 0;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: clamp(1.2rem, 3vw, 2.2rem);
-  padding: clamp(1.4rem, 3vw, 2.2rem);
+  gap: clamp(1.2rem, 32.4px, 2.2rem);
+  padding: clamp(1.4rem, 32.4px, 2.2rem);
   border: 1px solid var(--display-line);
   background: var(--display-faint);
 }
 
 .route-badge {
   display: grid;
-  width: clamp(5.2rem, 14vw, 8rem);
+  width: clamp(5.2rem, 151.2px, 8rem);
   aspect-ratio: 1;
   place-items: center;
   background: var(--display-ink);
   color: var(--display-background);
-  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-size: clamp(2.5rem, 75.6px, 4.5rem);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -636,16 +678,16 @@ footer {
 
 .bus-eyebrow {
   color: var(--display-muted);
-  font-size: clamp(0.62rem, 1.3vw, 0.85rem);
+  font-size: clamp(0.62rem, 14.04px, 0.85rem);
   letter-spacing: 0.19em;
   text-transform: uppercase;
 }
 
 .bus-summary h1 {
-  margin: clamp(0.45rem, 0.8vh, 0.7rem) 0;
+  margin: clamp(0.45rem, 15.36px, 0.7rem) 0;
   overflow: hidden;
   color: var(--display-ink);
-  font-size: clamp(1.65rem, 4.4vw, 3rem);
+  font-size: clamp(1.65rem, 47.52px, 3rem);
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -657,7 +699,7 @@ footer {
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--display-ink);
   color: var(--display-ink);
-  font-size: clamp(0.52rem, 1vw, 0.68rem);
+  font-size: clamp(0.52rem, 10.8px, 0.68rem);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -786,7 +828,7 @@ footer {
   display: grid;
   min-width: 0;
   gap: 0.5rem;
-  padding: clamp(1rem, 2.2vw, 1.5rem);
+  padding: clamp(1rem, 23.76px, 1.5rem);
   border-right: 1px solid var(--display-line-soft);
 }
 
@@ -796,7 +838,7 @@ footer {
 
 .bus-metrics span {
   color: var(--display-muted);
-  font-size: clamp(0.52rem, 1vw, 0.68rem);
+  font-size: clamp(0.52rem, 10.8px, 0.68rem);
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -804,91 +846,10 @@ footer {
 .bus-metrics strong {
   overflow: hidden;
   color: var(--display-ink);
-  font-size: clamp(0.82rem, 1.7vw, 1.15rem);
+  font-size: clamp(0.82rem, 18.36px, 1.15rem);
   font-weight: 400;
   line-height: 1.2;
   text-overflow: ellipsis;
-}
-
-@media (orientation: portrait) {
-  .viewport-shell {
-    --bezel-unit: calc(100vw / 1080);
-    --bezel-top-size: calc(var(--bezel-top) * var(--bezel-unit));
-    --bezel-right-size: calc(var(--bezel-right) * var(--bezel-unit));
-    --bezel-bottom-size: calc(var(--bezel-bottom) * var(--bezel-unit));
-    --dashboard-scale: calc(1 - var(--bezel-right) / 1080);
-    position: fixed;
-    inset: 0;
-    width: auto;
-    height: auto;
-    background: #000;
-  }
-
-  .display-viewport {
-    /* Reserve the bottom strip independently of grid/content sizing. */
-    position: absolute;
-    inset: var(--bezel-top-size) var(--bezel-right-size)
-      var(--bezel-bottom-size) 0;
-    width: auto;
-    height: auto;
-  }
-
-  .dashboard {
-    position: absolute;
-    top: 0;
-    left: 0;
-    /* Fit the actual framed area, including when it is the fullscreen element. */
-    width: calc(100% / var(--dashboard-scale));
-    height: calc(100% / var(--dashboard-scale));
-    transform: scale(var(--dashboard-scale));
-    transform-origin: top left;
-  }
-}
-
-@media (max-height: 1400px) {
-  .dashboard {
-    grid-template-rows:
-      auto minmax(16rem, 1.02fr) auto auto
-      minmax(13rem, 0.72fr) 0.75rem;
-    gap: clamp(0.8rem, 1.45vh, 1.25rem);
-    padding-top: clamp(1.4rem, 3vh, 2rem);
-    padding-bottom: clamp(0.8rem, 1.7vh, 1.2rem);
-  }
-
-  .clock-time > span {
-    font-size: clamp(8.91rem, 36.50625vw, 19.18125rem);
-  }
-
-  .current-weather,
-  .tasks-section {
-    padding: clamp(0.9rem, 2vw, 1.25rem);
-  }
-
-  .forecast-card,
-  .forecast-placeholder span {
-    min-height: clamp(5.8rem, 8.3vh, 7.2rem);
-  }
-
-  .dashboard.commute-dashboard {
-    grid-template-rows: auto auto auto minmax(15rem, 1fr) auto;
-    gap: clamp(0.7rem, 1.15vh, 1rem);
-  }
-
-  .commute-clock {
-    font-size: clamp(3.6rem, 13vw, 7rem);
-  }
-
-  .bus-summary {
-    padding: clamp(0.85rem, 2vw, 1.2rem);
-  }
-
-  .bus-map {
-    min-height: 15rem;
-  }
-
-  .bus-metrics div {
-    padding: clamp(0.75rem, 1.6vw, 1rem);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

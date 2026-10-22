@@ -199,9 +199,23 @@ export function BusMap({ state }: { state: BusState | null }) {
       { padding: [40, 40], animate: false },
     );
     mapRef.current = map;
-    window.setTimeout(() => map.invalidateSize(false), 0);
+    const initialResize = window.setTimeout(() => map.invalidateSize(false), 0);
+    const container = containerRef.current;
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+    const resizeObserver = new ResizeObserver(() => {
+      const nextWidth = container.clientWidth;
+      const nextHeight = container.clientHeight;
+      if (nextWidth === width && nextHeight === height) return;
+      width = nextWidth;
+      height = nextHeight;
+      map.invalidateSize(false);
+    });
+    resizeObserver.observe(container);
 
     return () => {
+      window.clearTimeout(initialResize);
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
       vehicleMarkersRef.current.clear();

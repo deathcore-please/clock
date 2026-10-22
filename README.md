@@ -111,26 +111,33 @@ outbound requests; it does not need a public URL or port forwarding.
 
 ## Raspberry Pi Chromium
 
-Portrait views include a pure-black frame to balance the rotated monitor's left
-chin. The extra top/right/bottom thicknesses start at 10/40/32 pixels at a 1080px
-viewport width and scale with that width; no extra left strip is added. The full
-dashboard scales together to fit inside the frame in both clock and commute
-views, before and after fullscreen. The content scales from the frame's actual
-inner dimensions, with space reserved at its top, right and bottom edges.
-Landscape views keep their existing layout.
+The display uses a fixed **1080×1920 portrait canvas** in clock and commute modes.
+The complete composition scales uniformly to fit the browser window, with black
+letterboxing on differently shaped windows, including landscape previews. Its
+internal typography and spacing do not change on entering fullscreen.
+
+Three opaque black frame elements balance the rotated monitor's left chin:
+10px top, 40px right and 32px bottom in canvas coordinates, with no extra left
+strip. The content is clipped to the remaining 1040×1878 area and the frame is
+painted above it, independently of Home Assistant themes.
 
 For monitor calibration, adjust only `--bezel-top`, `--bezel-right`, and
 `--bezel-bottom` together at the top of `src/styles.css`. These are unitless pixel
-values relative to 1080px width. Commit and redeploy, then refresh Chromium on the
-Pi to check each trial. A previous accidental top band may disappear with the
-fullscreen correction; check the Pi before recalibrating the explicit top inset.
+values on the reference canvas. Content fitting follows those values
+automatically. Commit and redeploy, then refresh Chromium on the Pi to check a
+calibration trial.
 
 On Raspberry Pi OS Desktop, open the deployed URL in Chromium and select
 **Full screen**. A normal press of `Escape` exits the page's fullscreen mode.
 The button makes the outer dashboard frame fullscreen and requests hidden browser
-navigation. After deployment, compare it with F11 on the Pi: both should show the
-bottom strip, including after repeated entries and exits. Desktop checks cannot
-confirm the Raspberry Pi Chromium compositor behaviour.
+navigation. The Pi's diagnostic report showed the same correct frame geometry
+for website-button fullscreen and F11, despite the missing bottom strip in the
+former. The explicit painted frame is a page-side rendering workaround, not a
+confirmed fix for Chromium's presentation/compositor behaviour. After deployment,
+a normal look on the monitor must confirm all three strips are visible; desktop
+checks alone cannot establish that. If button-driven fullscreen still clips the
+bottom, use **F11**, which has worked on this Pi, and press F11 again to exit.
+Do not compensate with guessed vertical offsets or progressively larger bezels.
 
 For automatic browser fullscreen at desktop login, add a Chromium launch line to
 `~/.config/labwc/autostart`:
@@ -140,8 +147,8 @@ chromium https://your-clock.pages.dev --start-fullscreen --noerrdialogs --disabl
 ```
 
 Chromium's startup fullscreen is browser fullscreen rather than the page's Web
-Fullscreen mode, so current Chromium may require holding `Escape` to exit it.
-Use the on-page button when single-press `Escape` behaviour is important.
+Fullscreen mode. The canvas refits when its container resizes; it does not depend
+on the page Fullscreen API being active for F11 or startup fullscreen.
 
 For an always-on display, disable screen blanking through:
 

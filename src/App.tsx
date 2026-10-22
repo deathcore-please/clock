@@ -15,6 +15,7 @@ import {
 import { useClock } from "./hooks/useClock";
 import { useDashboardState } from "./hooks/useDashboardState";
 import { useFullscreen } from "./hooks/useFullscreen";
+import { useDisplayFit } from "./hooks/useDisplayFit";
 import { useTaskState } from "./hooks/useTaskState";
 import { formatTaskAge, getTaskDensity, paginateTasks } from "./lib/tasks";
 import { neutralAmbientLight, type ForecastPeriod } from "./types/dashboard";
@@ -118,6 +119,7 @@ export default function App() {
     canFullscreen,
     enterFullscreen,
   } = useFullscreen();
+  const displayStyle = useDisplayFit(fullscreenRef);
   const timezone = dashboardState.weather.location.timezone;
   const clock = formatClockParts(now, timezone);
   const newDelhiClock = formatClockParts(now, NEW_DELHI_TIMEZONE);
@@ -237,147 +239,153 @@ export default function App() {
       style={ambientTheme.style}
       data-ambient-theme={ambientTheme.mode}
     >
-      <div className="display-viewport">
-      <section
-        className={`dashboard${showCommute ? " commute-dashboard" : ""}`}
-        aria-label={showCommute ? "Route 37 commute dashboard" : "Wall clock and weather dashboard"}
-      >
-        <Topbar
-          now={now}
-          timezone={timezone}
-          isFullscreen={isFullscreen}
-          canFullscreen={canFullscreen}
-          enterFullscreen={enterFullscreen}
-        />
-
-        {showCommute ? (
-          <>
-            <CommuteDashboard
-              state={busState}
-              now={now}
-              clockLabel={`${clock.hour}:${clock.minute}:${clock.second}`}
-            />
-          </>
-        ) : (
-          <>
-
-        <section className="clock" aria-label={`${clock.hour}:${clock.minute}:${clock.second}`}>
-          <span className="clock-time" aria-hidden="true">
-            <span>{clock.hour}</span>
-            <span className="clock-colon">:</span>
-            <span>{clock.minute}</span>
-          </span>
-          <div
-            className="secondary-clock"
-            aria-label={`New Delhi time ${newDelhiClock.hour}:${newDelhiClock.minute}, ${newDelhiDifference} GST`}
+      <div className="display-stage" style={displayStyle}>
+        <div className="display-viewport">
+          <section
+            className={`dashboard${showCommute ? " commute-dashboard" : ""}`}
+            aria-label={showCommute ? "Route 37 commute dashboard" : "Wall clock and weather dashboard"}
           >
-            <span className="secondary-clock-location">New Delhi</span>
-            <time className="secondary-clock-time" dateTime={now.toISOString()}>
-              {newDelhiClock.hour}:{newDelhiClock.minute}
-            </time>
-            <span className="secondary-clock-offset">
-              {newDelhiDifference} GST
-            </span>
-          </div>
-          <span className="seconds">{clock.second}</span>
-        </section>
+            <Topbar
+              now={now}
+              timezone={timezone}
+              isFullscreen={isFullscreen}
+              canFullscreen={canFullscreen}
+              enterFullscreen={enterFullscreen}
+            />
 
-        {current ? (
-          <section className="current-weather" aria-label="Current weather">
-            <div className="current-summary">
-              <span className="current-icon" aria-hidden="true">
-                {weatherSymbol(current.conditionId, current.observedAt, timezone)}
-              </span>
-              <div>
-                <p className="temperature">{formatTemperature(current.temperatureC)}</p>
-                <p className="condition">{current.description}</p>
-              </div>
-            </div>
-            <dl className="weather-details">
-              <div>
-                <dt>Feels like</dt>
-                <dd>{formatTemperature(current.feelsLikeC)}</dd>
-              </div>
-              <div>
-                <dt>Humidity</dt>
-                <dd>{Math.round(current.humidityPercent)}%</dd>
-              </div>
-              <div>
-                <dt>High / Low</dt>
-                <dd>
-                  {formatTemperature(current.highTemperatureC)}
-                  {" / "}
-                  {formatTemperature(current.lowTemperatureC)}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        ) : (
-          <section className="weather-unavailable" role="status">
-            <span aria-hidden="true">{"\u2014"}</span>
-            <div>
-              <strong>Weather unavailable</strong>
-              <p>The clock will keep running while the connection recovers.</p>
-            </div>
-          </section>
-        )}
-
-        <section className="forecast-section" aria-label="Upcoming weather forecast">
-          {visibleForecast.length === VISIBLE_FORECAST_PERIODS ? (
-            <div className="forecast-grid">
-              {visibleForecast.map((period) => (
-                <ForecastCard key={period.at} period={period} timezone={timezone} />
-              ))}
-            </div>
-          ) : (
-            <div className="forecast-placeholder" aria-hidden="true">
-              {Array.from({ length: VISIBLE_FORECAST_PERIODS }, (_, index) => (
-                <span key={index} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section
-          className="tasks-section"
-          aria-labelledby="tasks-heading"
-          data-density={taskDensity}
-        >
-          <header className="tasks-heading">
-            <h2 id="tasks-heading">Tasks</h2>
-            <span>{taskHeading}</span>
-          </header>
-          {visibleTasks.length > 0 ? (
-            <ul aria-label="Open tasks">
-              {visibleTasks.map((task) => (
-                <li key={task.uid}>
-                  <span className="task-marker" aria-hidden="true" />
-                  <span className="task-label" title={task.summary}>
-                    {task.summary}
+            {showCommute ? (
+              <>
+                <CommuteDashboard
+                  state={busState}
+                  now={now}
+                  clockLabel={`${clock.hour}:${clock.minute}:${clock.second}`}
+                />
+              </>
+            ) : (
+              <>
+                <section className="clock" aria-label={`${clock.hour}:${clock.minute}:${clock.second}`}>
+                  <span className="clock-time" aria-hidden="true">
+                    <span>{clock.hour}</span>
+                    <span className="clock-colon">:</span>
+                    <span>{clock.minute}</span>
                   </span>
-                  <span className="task-detail">
-                    {formatTaskAge(task.firstSeenAt, now, timezone)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="tasks-empty" role="status">
-              {taskState.status === "unavailable"
-                ? "Tasks unavailable"
-                : "No pending tasks"}
-            </p>
-          )}
-        </section>
+                  <div
+                    className="secondary-clock"
+                    aria-label={`New Delhi time ${newDelhiClock.hour}:${newDelhiClock.minute}, ${newDelhiDifference} GST`}
+                  >
+                    <span className="secondary-clock-location">New Delhi</span>
+                    <time className="secondary-clock-time" dateTime={now.toISOString()}>
+                      {newDelhiClock.hour}:{newDelhiClock.minute}
+                    </time>
+                    <span className="secondary-clock-offset">
+                      {newDelhiDifference} GST
+                    </span>
+                  </div>
+                  <span className="seconds">{clock.second}</span>
+                </section>
 
-            <footer>
-              {dashboardState.weather.status === "stale"
-                ? "Offline \u00b7 showing saved weather"
-                : " "}
-            </footer>
-          </>
-        )}
-      </section>
+                {current ? (
+                  <section className="current-weather" aria-label="Current weather">
+                    <div className="current-summary">
+                      <span className="current-icon" aria-hidden="true">
+                        {weatherSymbol(current.conditionId, current.observedAt, timezone)}
+                      </span>
+                      <div>
+                        <p className="temperature">{formatTemperature(current.temperatureC)}</p>
+                        <p className="condition">{current.description}</p>
+                      </div>
+                    </div>
+                    <dl className="weather-details">
+                      <div>
+                        <dt>Feels like</dt>
+                        <dd>{formatTemperature(current.feelsLikeC)}</dd>
+                      </div>
+                      <div>
+                        <dt>Humidity</dt>
+                        <dd>{Math.round(current.humidityPercent)}%</dd>
+                      </div>
+                      <div>
+                        <dt>High / Low</dt>
+                        <dd>
+                          {formatTemperature(current.highTemperatureC)}
+                          {" / "}
+                          {formatTemperature(current.lowTemperatureC)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
+                ) : (
+                  <section className="weather-unavailable" role="status">
+                    <span aria-hidden="true">{"\u2014"}</span>
+                    <div>
+                      <strong>Weather unavailable</strong>
+                      <p>The clock will keep running while the connection recovers.</p>
+                    </div>
+                  </section>
+                )}
+
+                <section className="forecast-section" aria-label="Upcoming weather forecast">
+                  {visibleForecast.length === VISIBLE_FORECAST_PERIODS ? (
+                    <div className="forecast-grid">
+                      {visibleForecast.map((period) => (
+                        <ForecastCard key={period.at} period={period} timezone={timezone} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="forecast-placeholder" aria-hidden="true">
+                      {Array.from({ length: VISIBLE_FORECAST_PERIODS }, (_, index) => (
+                        <span key={index} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section
+                  className="tasks-section"
+                  aria-labelledby="tasks-heading"
+                  data-density={taskDensity}
+                >
+                  <header className="tasks-heading">
+                    <h2 id="tasks-heading">Tasks</h2>
+                    <span>{taskHeading}</span>
+                  </header>
+                  {visibleTasks.length > 0 ? (
+                    <ul aria-label="Open tasks">
+                      {visibleTasks.map((task) => (
+                        <li key={task.uid}>
+                          <span className="task-marker" aria-hidden="true" />
+                          <span className="task-label" title={task.summary}>
+                            {task.summary}
+                          </span>
+                          <span className="task-detail">
+                            {formatTaskAge(task.firstSeenAt, now, timezone)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="tasks-empty" role="status">
+                      {taskState.status === "unavailable"
+                        ? "Tasks unavailable"
+                        : "No pending tasks"}
+                    </p>
+                  )}
+                </section>
+
+                <footer>
+                  {dashboardState.weather.status === "stale"
+                    ? "Offline \u00b7 showing saved weather"
+                    : " "}
+                </footer>
+              </>
+            )}
+          </section>
+        </div>
+        <div className="display-frame" aria-hidden="true">
+          <div className="display-bezel display-bezel--top" />
+          <div className="display-bezel display-bezel--right" />
+          <div className="display-bezel display-bezel--bottom" />
+        </div>
       </div>
     </main>
   );

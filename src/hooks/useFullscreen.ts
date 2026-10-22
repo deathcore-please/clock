@@ -41,7 +41,11 @@ export function useFullscreen() {
   }, [resetCursorTimer]);
 
   const enterFullscreen = useCallback(async () => {
-    await fullscreenRef.current?.requestFullscreen({ navigationUI: "hide" });
+    try {
+      await fullscreenRef.current?.requestFullscreen({ navigationUI: "hide" });
+    } catch {
+      // A refused request must leave the normal view and its entry control usable.
+    }
   }, []);
 
   return {

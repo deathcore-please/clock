@@ -113,6 +113,34 @@ describe("wall clock dashboard", () => {
     ).toBe(container.querySelector(".viewport-shell"));
   });
 
+  it("paints three non-interactive, accessibility-hidden bezels around the canvas", async () => {
+    const { container } = render(<App />);
+    await screen.findByText("few clouds");
+    const stage = container.querySelector(".display-stage");
+    expect(stage).toHaveStyle({ width: "1080px", height: "1920px" });
+    expect(stage?.querySelector(".display-viewport .dashboard")).toBeInTheDocument();
+    const frame = stage?.querySelector(".display-frame");
+    expect(frame).toHaveAttribute("aria-hidden", "true");
+    expect(frame?.querySelectorAll(".display-bezel")).toHaveLength(3);
+    for (const side of ["top", "right", "bottom"]) {
+      expect(frame?.querySelector(`.display-bezel--${side}`)).toBeInTheDocument();
+    }
+  });
+
+  it("keeps the dashboard and fullscreen control usable after a refused request", async () => {
+    vi.mocked(HTMLElement.prototype.requestFullscreen).mockRejectedValueOnce(
+      new Error("Fullscreen denied"),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Enter fullscreen" }));
+    await waitFor(() =>
+      expect(HTMLElement.prototype.requestFullscreen).toHaveBeenCalledOnce(),
+    );
+    expect(await screen.findByText("few clouds")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Enter fullscreen" }));
+    expect(HTMLElement.prototype.requestFullscreen).toHaveBeenCalledTimes(2);
+  });
+
   it("hides the cursor in fullscreen and restores the control and cursor on exit", async () => {
     vi.useFakeTimers();
     let fullscreenElement: Element | null = null;
@@ -150,6 +178,16 @@ describe("wall clock dashboard", () => {
     });
     expect(container.querySelector(".viewport-shell")).not.toHaveClass("cursor-hidden");
     vi.useRealTimers();
+  });
+
+  it("removes fullscreen and pointer listeners when the dashboard unmounts", async () => {
+    const removed = vi.spyOn(document, "removeEventListener");
+    const { unmount } = render(<App />);
+    await screen.findByText("few clouds");
+    unmount();
+
+    expect(removed).toHaveBeenCalledWith("fullscreenchange", expect.any(Function));
+    expect(removed).toHaveBeenCalledWith("pointermove", expect.any(Function));
   });
 
   it("uses saved weather when the network is unavailable", async () => {

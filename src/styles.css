@@ -2,9 +2,9 @@
   /* Bezel thicknesses in pixels on the fixed 1080 × 1920 canvas.
      Tune only these three values after checking the physical monitor.
      The left edge has no extra strip: the monitor already supplies its chin. */
-  --bezel-top: 10;
-  --bezel-right: 40;
-  --bezel-bottom: 32;
+  --bezel-top: 45;
+  --bezel-right: 45;
+  --bezel-bottom: 45;
 
   --display-background: #000;
   --display-ink: #f7f7f4;
@@ -187,7 +187,7 @@ footer {
   position: absolute;
   top: 0;
   right: 0;
-  display: inline-flex;
+  display: none;
   min-height: 2.8rem;
   align-items: center;
   justify-content: center;
